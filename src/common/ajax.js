@@ -1,56 +1,51 @@
-import axios from 'axios'
-import { allport, readLocal } from './utils'
+function ajax(options) {
+	return new Promise((resolve, reject)=>{
+		options = options || {};
+		options.type = (options.type || "GET").toUpperCase();
+		options.dataType = options.dataType || "json";
 
-const axiosAjax = axios.create({
-	baseURL: allport(), // api的base_url
-	timeout: 5000, // request timeout
-	withCredentials: false,
-	headers: {
-		// 'Content-Type': 'application/json;charset=utf-8',
-		'Access-Control-Allow-Origin': "*"
-	}
-})
-
-// axiosAjax.interceptors.request.use(config => {
-// 	var userInfo = readLocal('userInfo');
-// 	if (userInfo && userInfo.session) {
-// 		config.headers["Access-Control-Allow-Origin"] = "*";
-// 		config.headers['userId'] = userInfo.userId;
-// 		config.headers['userSiteId'] = userInfo.siteId;
-// 	};
-// 	// Do something before request is sent
-// 	return config
-// }, error => {
-// 	// Do something with request error
-// 	console.log(error) // for debug
-// 	Promise.reject(error)
-// })
-
-// axiosAjax.interceptors.response.use(function (response) {
-// 	//对返回的数据进行一些处理
-// 	let data = response.data;
-// 	let obj = {
-// 		code: data.code,
-// 		data: data.data,
-// 		success: data.success,
-// 		message: data.message
-// 	};
-// 	return obj;
-// }, function (error) {
-// 	//对返回的错误进行一些处理
-// 	return Promise.reject(error);
-// });
-
-var ajaxFun = function (option) {
-	return new Promise(function (resolve, reject) {
-		axiosAjax(option).then((response) => {
-			resolve(response);
-		}).catch((error) => {
-			console.log(error);
-			reject(error);
-		});
+		var params = formatParams(options.data);
+	
+		//创建 - 非IE6 - 第一步
+		if (window.XMLHttpRequest) {
+			var xhr = new XMLHttpRequest();
+		} else { //IE6及其以下版本浏览器
+			var xhr = new ActiveXObject('Microsoft.XMLHTTP');
+		}
+	
+		//接收 - 第三步
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState == 4) {
+				var status = xhr.status;
+				if (status >= 200 && status < 300) {
+					resolve(JSON.parse(xhr.responseText))
+				} else {
+					reject(status)
+				}
+			}
+		}
+	
+		//连接 和 发送 - 第二步
+		if (options.type == "GET") {
+			xhr.open("GET", options.url + "?" + params, true);
+			xhr.send(null);
+		} else if (options.type == "POST") {
+			xhr.open("POST", options.url, true);
+			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+			xhr.send(params);
+		}
 	})
 }
 
-export default ajaxFun
+//格式化参数
+function formatParams(data) {
+	var arr = [];
+	for (var name in data) {
+		arr.push(encodeURIComponent(name) + "=" + encodeURIComponent(data[name]));
+	}
+	arr.push(("v=" + Math.random()).replace(".",""));
+	return arr.join("&");
+}
+
+export default ajax
 
