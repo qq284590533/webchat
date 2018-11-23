@@ -27,7 +27,7 @@
 			<div class="sidestrip_icon">
 				<a id="si_1" :class="{on:tabActive==1}" @click="tabActive=1"></a>
 				<a id="si_2" :class="{on:tabActive==2}" @click="tabActive=2"></a>
-				<a id="si_3" :class="{on:tabActive==3}" @click="tabActive=3"></a>
+				<!-- <a id="si_3" :class="{on:tabActive==3}" @click="tabActive=3"></a> -->
 			</div>
 			
 			<!--底部扩展键-->
@@ -116,13 +116,17 @@
 			</div>
 			<div class="office_text">
 				<ul class="friends_list">
-					<li>
-						<p>新的朋友</p>
-						<div class="friends_box">
-							<div class="user_head"><img src="/static/images/head/1.jpg"/></div>
-							<div class="friends_text">
-								<p class="user_name">新的朋友</p>
-							</div>
+					<li class="friends-item">
+						<p class="">新的朋友</p>
+						<div class="item-box">
+							<img src="/static/images/head/1.jpg"/>
+							<p class="user_name">新的朋友</p>
+						</div>
+					</li>
+					<li class="friends-item" v-for="(friend, index) in friendsList" :key="index">
+						<div class="item-box" @click="talkWith">
+							<img :src="friend.avatar||'/static/images/contact.png'" alt="">
+							<p>{{friend.nick}}</p>
 						</div>
 					</li>
 				</ul>
@@ -230,19 +234,22 @@
 <script>
 import 'jquery'
 import 'amazeui'
+import dayjs from 'dayjs'
 import ajax from '../common/ajax'
-import { readLocal, sortChinese, objSortFun} from '../common/utils'
+import { readLocal, sortChinese, objSortFun, saveLocal} from '../common/utils'
 import * as strophe from '../common/strophe.js'
 import * as API from '../api/index.js'
 export default {
     data(){
         return {
-            user:'',
+            user:null,
             status:null,
             tabActive:1,
             talkList:[],
 			chatFriend:'',
-			friendsList:[]
+			friendsList:[],
+			messageList:[],
+			activeMessageView:'',
         }
     },
     watch:{
@@ -267,7 +274,19 @@ export default {
                 default:
                     break;
             }
-        }
+		},
+		friendsList:{
+			handler(curVal,oldVal){
+				saveLocal('FRIENDS_LIST_'+this.user.userId,curVal)
+			},
+			deep:true
+		},
+		messageList:{
+			handler(curVal,oldVal){
+				saveLocal('MESSAGE_LIST_'+this.user.userId,curVal)
+			},
+			deep:true
+		},
     },
     methods:{
         onConnect(status) {
@@ -284,28 +303,42 @@ export default {
             }
         },
         async onConnected(){
-			console.log(this.user);
 			strophe.connection.addHandler(strophe.onMessage, null, 'message', null, null, null);
-			let data = await API.getFriendsList({
+			strophe.connection.send(window.$pres().tree());
+		},
+
+		talkWith(){
+
+		}
+
+    },
+    async created(){
+		let vm = this;
+		this.user = readLocal('user');
+		if(this.user){
+			let userInfo = {
+				avatar:this.user.avatar,
+				tel: this.user.tel,
+				userId: this.user.userId,
+				usernick:this.user.nick,
+				imPassword:this.user.imPassword
+			}
+			strophe.loginIm(userInfo,vm,this.onConnect);
+			let friendsData = await API.getFriendsList({
 				uid:this.user.userId
 			});
-			this.friendsList = data.data
-			objSortFun(this.friendsList,'nick')
+			this.friendsList = friendsData.data
+			// objSortFun(this.friendsList,'nick')
 			// sortChinese(this.friendsList,'nick')
 			// console.table(this.friendsList)
-		},
-    },
-    created(){
-        this.user = readLocal('user')
-        // console.log(this.user)
-        let userInfo = {
-            avatar:this.user.avatar,
-            tel: this.user.tel,
-            userId: this.user.userId,
-            usernick:this.user.nick,
-            imPassword:this.user.imPassword
-        }
-        strophe.loginIm(userInfo,this.onConnect);
+			let friendsListData = {
+				friends:this.friendsList
+			}
+
+		}else{
+			this.$router.push({name:'login'})
+		}
+
     }
 }
 </script>
@@ -344,5 +377,29 @@ export default {
             background url(/static/images/icon/head_4.png) no-repeat center
             &.on
                 background url(/static/images/icon/head_4_1.png) no-repeat center
+.friends_list li
+	border none
+	padding-top 0
+.friends_list li:hover .item-box
+	background #dedbdb
+.friends_list .item-box
+	display flex
+	text-align left
+	padding 12px
+	overflow hidden
+	border-bottom 1px solid #dddbdb
+	cursor pointer
+	img 
+		width 40px
+		height 40px
+	p
+		flex 1
+		padding-left 8px
+		font-size 14px
+		color #333
+		line-height 40px
+		overflow hidden
+		text-overflow ellipsis
+		white-space nowrap
 </style>
 
