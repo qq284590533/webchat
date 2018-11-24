@@ -59,20 +59,20 @@
 		<!--聊天列表-->
 		<div v-show="tabActive==1" class="middle">
 			<div class="wx_search">
-				<!-- <input type="text" placeholder="搜索"/>
-				<button>+</button> -->
+				<input type="text" placeholder="搜索"/>
+				<button>+</button>
 			</div>
 			<div class="office_text">
 				<ul class="user_list" id="talk_list">
-					<!-- <li class="user_active" onclick="chosefrides(this,'62003001@app.im')">
-						<div class="user_head"><img src="/static/images/head/15.jpg"/></div>
+					<li :class="{'user_active':msg.sender_uid==activeMessageView}" v-for="(msg,index) in talkList" :key="index">
+						<div class="user_head"><img :src="msg.sender_avatar"/></div>
 						<div class="user_text">
-							<p class="user_name">62003001@app.im</p>
-							<p class="user_message">金少凯牛逼！</p>
+							<p class="user_name">{{ msg.sender_nick }}</p>
+							<p class="user_message">{{ msg.content }}</p>
 						</div>
-						<div class="user_time">2:54</div>
+						<div class="user_time">{{ msg.time }}</div>
 					</li>
-					<li onclick="chosefrides(this,'62003002@app.im')">
+					<!-- <li onclick="chosefrides(this,'62003002@app.im')">
 						<div class="user_head"><img src="/static/images/head/2.jpg"/></div>
 						<div class="user_text">
 							<p class="user_name">62003002@app.im</p>
@@ -246,9 +246,12 @@ export default {
             status:null,
             tabActive:1,
             talkList:[],
+			talkListKey:[],
+			talkListJson:{},
 			chatFriend:'',
+			friendsJson:{},
 			friendsList:[],
-			messageList:[],
+			messageJson:{},
 			activeMessageView:'',
         }
     },
@@ -274,18 +277,6 @@ export default {
                 default:
                     break;
             }
-		},
-		friendsList:{
-			handler(curVal,oldVal){
-				saveLocal('FRIENDS_LIST_'+this.user.userId,curVal)
-			},
-			deep:true
-		},
-		messageList:{
-			handler(curVal,oldVal){
-				saveLocal('MESSAGE_LIST_'+this.user.userId,curVal)
-			},
-			deep:true
 		},
     },
     methods:{
@@ -313,30 +304,36 @@ export default {
 
     },
     async created(){
-		let vm = this;
+		strophe.setVM(this);
+		strophe.createConnection();
 		this.user = readLocal('user');
-		if(this.user){
-			let userInfo = {
-				avatar:this.user.avatar,
-				tel: this.user.tel,
-				userId: this.user.userId,
-				usernick:this.user.nick,
-				imPassword:this.user.imPassword
-			}
-			strophe.loginIm(userInfo,vm,this.onConnect);
-			let friendsData = await API.getFriendsList({
-				uid:this.user.userId
-			});
-			this.friendsList = friendsData.data
-			// objSortFun(this.friendsList,'nick')
-			// sortChinese(this.friendsList,'nick')
-			// console.table(this.friendsList)
-			let friendsListData = {
-				friends:this.friendsList
-			}
-
-		}else{
+		if(this.user==null){
 			this.$router.push({name:'login'})
+		}
+		this.messageJson = readLocal('MESSAGE_JSON_'+this.user.userId)||{};
+		this.talkList = readLocal('TALK_LIST_'+this.user.userId)||[];
+		this.talkListJson = readLocal('TALK_LIST_JSON'+this.user.userId)||{};
+		this.talkListKey = readLocal('TALK_LIST_KEY_'+this.user.userId)||[];
+		if(this.talkList.length){
+			this.activeMessageView = this.talkList[0].sender_uid
+		}
+		let userInfo = {
+			avatar:this.user.avatar,
+			tel: this.user.tel,
+			userId: this.user.userId,
+			usernick:this.user.nick,
+			imPassword:this.user.imPassword
+		}
+		strophe.loginIm(userInfo,this.onConnect);
+		let friendsData = await API.getFriendsList({
+			uid:this.user.userId
+		});
+		friendsData.data.forEach(item=>{
+			this.friendsJson[item.userId] = item;
+		})
+		saveLocal('FRIENDS_LIST_'+this.user.userId,this.friendsJson);
+		for (let item in this.friendsJson){
+			this.friendsList.push(this.friendsJson[item])
 		}
 
     }
@@ -401,5 +398,7 @@ export default {
 		overflow hidden
 		text-overflow ellipsis
 		white-space nowrap
+.office_text
+	overflow-y auto
 </style>
 

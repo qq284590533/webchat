@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-const login = r => require.ensure([], () => r(require('@/components/login')), 'login')
-const index = r => require.ensure([], () => r(require('@/components/index')), 'index')
+const login = r => require.ensure([], () => r(require('@/components/Login')), 'login')
+const index = r => require.ensure([], () => r(require('@/components/Index')), 'index')
 
 Vue.use(Router)
 

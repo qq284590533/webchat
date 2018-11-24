@@ -7,11 +7,18 @@ let BOSH_SERVICE = 'http://106.14.241.187:5280/xmpp-httpbind';
 let jid;
 let db;
 let base64 = new Base64()
-creatDb();
-let connection = new Strophe.Connection(BOSH_SERVICE, {sync: false});
-connection.rawInput = rawInput;
-connection.rawOutput = rawOutput;
 let VM;
+creatDb();
+let connection;
+function createConnection(){
+	connection = new Strophe.Connection(BOSH_SERVICE);
+	connection.rawInput = rawInput;
+	connection.rawOutput = rawOutput;
+}
+
+function setVM(vm){
+	VM = vm;
+}
 
 function log(msg) {
 	// console.log(msg);
@@ -29,9 +36,7 @@ function exChangeJid(uid) {
 	return uid + '@app.im/app';
 };
 
-function loginIm(param, vm, callback) {
-	VM = vm
-	console.log(VM.user)
+function loginIm(param, callback) {
 	let userId = param.userId;
 	jid = exChangeJid(userId);
 	let imPassword = param.imPassword
@@ -42,42 +47,46 @@ function loginIm(param, vm, callback) {
 	);
 }
 
-function saveMessage(msgInfo) {
 
-}
 
-/**
- * 保存消息
- * @param uid   发送者jid
- * @param receiver_id   接收者jid
- * @param msg   文本内容
- * @param callback  null|function
- */
-function addChat({
-	jid: uid,
-	sender_uid: sender_uid,
-	tojid: receiver_uid,
-	msg: msg,
-	time: time,
-	type: type
-	}, callback = null) {
-	let sql = "INSERT INTO chat (uid, type, sender_uid, receiver_uid, content,time) VALUES (?, ?, ?, ?, ?, ?)";
-	db.transaction(function (tx) {
-		tx.executeSql(sql, [uid, type, sender_uid, receiver_uid, msg, time], function (db, db_res) {
-		callback({
-			status: 1,
-			data: db_res
-		});
-		}, function (db, err) {
-		callback({
-			status: 0,
-			err: err
-		});
-		console.log('db:addChat()=>error');
-		console.log(err);
-		});
-	});
-}
+
+
+// function saveMessage(msgInfo) {
+
+// }
+
+// /**
+//  * 保存消息
+//  * @param uid   发送者jid
+//  * @param receiver_id   接收者jid
+//  * @param msg   文本内容
+//  * @param callback  null|function
+//  */
+// function addChat({
+// 	jid: uid,
+// 	sender_uid: sender_uid,
+// 	tojid: receiver_uid,
+// 	msg: msg,
+// 	time: time,
+// 	type: type
+// 	}, callback = null) {
+// 	let sql = "INSERT INTO chat (uid, type, sender_uid, receiver_uid, content,time) VALUES (?, ?, ?, ?, ?, ?)";
+// 	db.transaction(function (tx) {
+// 		tx.executeSql(sql, [uid, type, sender_uid, receiver_uid, msg, time], function (db, db_res) {
+// 		callback({
+// 			status: 1,
+// 			data: db_res
+// 		});
+// 		}, function (db, err) {
+// 		callback({
+// 			status: 0,
+// 			err: err
+// 		});
+// 		console.log('db:addChat()=>error');
+// 		console.log(err);
+// 		});
+// 	});
+// }
 
 /**
  * 更新会话记录列表
@@ -167,10 +176,12 @@ window.addChatView = function (dom) {
  * @param msg
  * @returns {boolean}
  */
+let cont = 0;
 function onMessage(msg) {
+	cont++
 	let user = VM.user
 	// console.log(user)
-	console.log(msg)
+	// console.log(msg)
 	let from = msg.getAttribute('from');
 	let type = msg.getAttribute('type');
 	let elems = msg.getElementsByTagName('body');
@@ -181,16 +192,58 @@ function onMessage(msg) {
 			time =	delay[0].getAttribute('stamp')
 		}
 		let body = Strophe.getText(elems[0]);
-		let magInfo = {
-			jid: jid,
-			sender_uid: from,
-			tojid: jid,
-			msg: body,
+		let sender_uid = from.substring(0, from.indexOf('@'));
+		let msg = JSON.parse(base64.decode(body));
+		let msgInfo = {
+			sender_uid:sender_uid,
+			sender_nick: VM.friendsJson[sender_uid].nick,
+			sender_avatar: VM.friendsJson[sender_uid].avatar,
+			msg:msg,
+			content:msg.data.body.content,
 			time: time,
-			type: type
+			type: type,
 		};
-		console.log(base64.decode(body))
-		// addChat(magInfo, function (res) {
+		let other_jid = from.substring(0, from.indexOf('@'));
+		if(!VM.messageJson[other_jid]){
+			VM.messageJson[other_jid]=[]
+			VM.messageJson[other_jid].unshift(msgInfo)
+		}else{
+			let item = VM.messageJson[other_jid];
+			let status = false;
+			for(let i=0; i<item.length; i++){
+				let msgId = item[i].msg.data.msgId;
+				let msgInfoMsgId = JSON.parse(base64.decode(body)).data.msgId;
+				if(msgId==msgInfoMsgId){
+					status=true;
+					break;
+				}
+			}
+			if(!status){
+				VM.messageJson[other_jid].unshift(msgInfo);
+			}
+			VM.messageJson[other_jid].sort((a,b)=>{
+				let timeA = new Date(a.time).getTime()
+				let timeB = new Date(b.time).getTime()
+				return timeB-timeA
+			})
+		}
+		saveLocal('MESSAGE_JSON_'+user.userId,VM.messageJson)
+		let talkList=[];
+		for(let key in VM.messageJson){
+			VM.talkListJson[key] = VM.messageJson[key][0];
+		}
+		for(let key in VM.talkListJson){
+			talkList.push(VM.talkListJson[key])
+		}
+		VM.talkList = talkList;
+		VM.talkList.sort((a,b)=>{
+			let timeA = new Date(a.time).getTime()
+			let timeB = new Date(b.time).getTime()
+			return timeB-timeA
+		})
+		saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
+		saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkList)
+		// addChat(msgInfo, function (res) {
 		// updateTalkList(exChangeJid(VM.user.userId), from);
 		// if (res.status) {
 		// 	let other_jid = from.substring(0, from.indexOf('@'));
@@ -232,7 +285,7 @@ function onMessage(msg) {
 		// }
 		// });
 	}
-	// console.log('---------------------');
+	console.log('---------------------');
 	return true;
 }
 
@@ -310,6 +363,8 @@ function getFormatDate() {
 
 export {
 	Strophe,
+	createConnection,
+	setVM,
 	loginIm,
 	connection,
 	onMessage
