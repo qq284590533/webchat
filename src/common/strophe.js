@@ -10,11 +10,9 @@ let base64 = new Base64()
 let VM;
 creatDb();
 let connection;
-function createConnection(){
-	connection = new Strophe.Connection(BOSH_SERVICE);
-	connection.rawInput = rawInput;
-	connection.rawOutput = rawOutput;
-}
+connection = new Strophe.Connection(BOSH_SERVICE,{sync: false});
+connection.rawInput = rawInput;
+connection.rawOutput = rawOutput;
 
 function setVM(vm){
 	VM = vm;
@@ -36,90 +34,55 @@ function exChangeJid(uid) {
 	return uid + '@app.im/app';
 };
 
-function loginIm(param, callback) {
+function loginIm(param) {
 	let userId = param.userId;
 	jid = exChangeJid(userId);
 	let imPassword = param.imPassword
 	connection.connect(
 		jid,
 		imPassword,
-		callback
+		onConnect
 	);
 }
 
 
-
-
-
-// function saveMessage(msgInfo) {
-
-// }
-
-// /**
-//  * 保存消息
-//  * @param uid   发送者jid
-//  * @param receiver_id   接收者jid
-//  * @param msg   文本内容
-//  * @param callback  null|function
-//  */
-// function addChat({
-// 	jid: uid,
-// 	sender_uid: sender_uid,
-// 	tojid: receiver_uid,
-// 	msg: msg,
-// 	time: time,
-// 	type: type
-// 	}, callback = null) {
-// 	let sql = "INSERT INTO chat (uid, type, sender_uid, receiver_uid, content,time) VALUES (?, ?, ?, ?, ?, ?)";
-// 	db.transaction(function (tx) {
-// 		tx.executeSql(sql, [uid, type, sender_uid, receiver_uid, msg, time], function (db, db_res) {
-// 		callback({
-// 			status: 1,
-// 			data: db_res
-// 		});
-// 		}, function (db, err) {
-// 		callback({
-// 			status: 0,
-// 			err: err
-// 		});
-// 		console.log('db:addChat()=>error');
-// 		console.log(err);
-// 		});
-// 	});
-// }
-
-/**
- * 更新会话记录列表
- * @param jid
- * @param other_id
- */
-function updateTalkList(jid, other_id) {
-	let sql = "SELECT * FROM talk_list WHERE uid = ? AND other_id = ? LIMIT 0,1";
-	let time = getFormatDate();
-	db.transaction(function (tx) {
-		tx.executeSql(sql, [jid, other_id], function (db, db_res) {
-		// console.log(db_res);
-		if (db_res.rows.length != 0) {
-			//更新会话记录
-			tx.executeSql("UPDATE talk_list SET time = ? WHERE id = ?",
-			[time, db_res.rows[0].id],
-			function (db, db_res) {
-				// console.log(db);
-				// console.log(db_res);
-			});
-		} else {
-			//新建会话记录
-			tx.executeSql("INSERT INTO talk_list (uid, other_id, time) VALUES (?, ?, ?)",
-			[jid, other_id, time],
-			function (db, db_res) {
-
-			});
-		}
-		}, function (db, err) {
-		// console.log('db:getChat()=>error');
-		// console.log(err);
-		});
-	});
+function onConnect(status) {
+	switch(status){
+		case Strophe.Status.CONNECTING:
+			console.log('正在连接')
+			break;
+		case Strophe.Status.CONNFAIL:
+			console.log(status)
+			console.log('连接失败')
+			break;
+		case Strophe.Status.DISCONNECTING:
+			console.log('正在断开连接')
+			break;
+		case Strophe.Status.DISCONNECTED:
+			console.log(status)
+			console.log('已断开连接')
+			break;
+		case Strophe.Status.CONNECTED:
+			console.log('已连接')
+			connection.addHandler(onMessage, null, 'message', null, null, null);
+			connection.send(window.$pres().tree());
+			break;
+		default:
+			break;
+	}
+	// if (status == Strophe.Status.CONNECTING) {
+	// 	console.log('正在连接')
+	// } else if (status == Strophe.Status.CONNFAIL) {
+	// 	console.log('连接失败')
+	// } else if (status == Strophe.Status.DISCONNECTING) {
+	// 	console.log('正在断开连接')
+	// } else if (status == Strophe.Status.DISCONNECTED) {
+	// 	console.log('已断开连接')
+	// } else if (status == Strophe.Status.CONNECTED) {
+	// 	console.log('已连接')
+	// 	connection.addHandler(onMessage, null, 'message', null, null, null);
+	// 	connection.send(window.$pres().tree());
+	// }
 }
 
 /**
@@ -176,12 +139,9 @@ window.addChatView = function (dom) {
  * @param msg
  * @returns {boolean}
  */
-let cont = 0;
 function onMessage(msg) {
-	cont++
+	console.log('来新消息了！');
 	let user = VM.user
-	// console.log(user)
-	// console.log(msg)
 	let from = msg.getAttribute('from');
 	let type = msg.getAttribute('type');
 	let elems = msg.getElementsByTagName('body');
@@ -243,47 +203,6 @@ function onMessage(msg) {
 		})
 		saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
 		saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkList)
-		// addChat(msgInfo, function (res) {
-		// updateTalkList(exChangeJid(VM.user.userId), from);
-		// if (res.status) {
-		// 	let other_jid = from.substring(0, from.indexOf('@'));
-		// 	// let set_top = $("#talk_list").find("li[data-other_id='"+other_jid+"']");
-		// 	let friends = readLocal(user.userId).friends
-		// 	if (friends.length > 0) {
-		// 	friends.map(function (item, index) {
-		// 		if (item.userId == other_jid) {
-		// 			// $("#fridesTop").text(item.nick);
-
-		// 			// if(set_top.length == 0){
-		// 			let talkData = {
-		// 				active: 'user_active',
-		// 				jid: exChangeJid(item.userId),
-		// 				other_id: item.userId,
-		// 				chat_type: 'chat',
-		// 				nick: item.nick,
-		// 				avatar: item.avatar,
-		// 				msg: '',
-		// 				time: '',
-		// 			};
-		// 			// console.log(talkData)
-		// 			// let talkView = template('talkListView',talkData);
-		// 			// $("#talk_list").prepend(talkView);
-		// 			// }
-		// 			let chatData = {
-		// 				identity: 'other',
-		// 				avatar: item.avatar,
-		// 				nick: item.nick,
-		// 				msg: base64.decode(body)
-		// 			};
-		// 			// console.log(chatData)
-		// 			// let chatView  = template('chatView',chatData);
-		// 			// $("#chatbox").append(chatView);
-		// 		}
-		// 	})
-		// 	}
-
-		// }
-		// });
 	}
 	console.log('---------------------');
 	return true;
@@ -363,7 +282,6 @@ function getFormatDate() {
 
 export {
 	Strophe,
-	createConnection,
 	setVM,
 	loginIm,
 	connection,

@@ -124,7 +124,7 @@
 						</div>
 					</li>
 					<li class="friends-item" v-for="(friend, index) in friendsList" :key="index">
-						<div class="item-box" @click="talkWith">
+						<div class="item-box">
 							<img :src="friend.avatar||'/static/images/contact.png'" alt="">
 							<p>{{friend.nick}}</p>
 						</div>
@@ -256,56 +256,53 @@ export default {
         }
     },
     watch:{
-        status(newVal,oldVal){
-            switch(newVal){
-                case 'CONNECTING':
-                    console.log('正在连接')
-                    break;
-                case 'CONNFAIL':
-                    console.log('连接失败')
-                    break;
-                case 'DISCONNECTING':
-                    console.log('正在断开连接')
-                    break;
-                case 'DISCONNECTED':
-                    console.log('已断开连接')
-                    break;
-                case 'CONNECTED':
-                    console.log('已连接')
-                    this.onConnected()
-                    break;
-                default:
-                    break;
-            }
-		},
+        // status(newVal,oldVal){
+        //     switch(newVal){
+        //         case 'CONNECTING':
+        //             console.log('正在连接')
+        //             break;
+		//         case 'CONNFAIL':
+		// 			console.log('连接失败')
+        //             break;
+        //         case 'DISCONNECTING':
+        //             console.log('正在断开连接')
+        //             break;
+        //         case 'DISCONNECTED':
+        //             console.log('已断开连接')
+        //             break;
+        //         case 'CONNECTED':
+        //             console.log('已连接')
+        //             this.onConnected()
+        //             break;
+        //         default:
+        //             break;
+        //     }
+		// },
+
     },
     methods:{
-        onConnect(status) {
-            if (status == strophe.Strophe.Status.CONNECTING) {
-                this.status = 'CONNECTING'
-            } else if (status == strophe.Strophe.Status.CONNFAIL) {
-                this.status = 'CONNFAIL'
-            } else if (status == strophe.Strophe.Status.DISCONNECTING) {
-                this.status = 'DISCONNECTING'
-            } else if (status == strophe.Strophe.Status.DISCONNECTED) {
-                this.status = 'CONNECTED'
-            } else if (status == strophe.Strophe.Status.CONNECTED) {
-                this.status = 'CONNECTED'
-            }
-        },
-        async onConnected(){
-			strophe.connection.addHandler(strophe.onMessage, null, 'message', null, null, null);
-			strophe.connection.send(window.$pres().tree());
-		},
+        // onConnect(status) {
+        //     if (status == strophe.Strophe.Status.CONNECTING) {
+        //         this.status = 'CONNECTING'
+        //     } else if (status == strophe.Strophe.Status.CONNFAIL) {
+        //         this.status = 'CONNFAIL'
+        //     } else if (status == strophe.Strophe.Status.DISCONNECTING) {
+        //         this.status = 'DISCONNECTING'
+        //     } else if (status == strophe.Strophe.Status.DISCONNECTED) {
+        //         this.status = 'CONNECTED'
+        //     } else if (status == strophe.Strophe.Status.CONNECTED) {
+        //         this.status = 'CONNECTED'
+        //     }
+        // },
+        // onConnected(){
+		// 	strophe.connection.addHandler(strophe.onMessage, null, 'message', null, null, null);
+		// 	strophe.connection.send(window.$pres().tree());
+		// },
 
-		talkWith(){
-
-		}
 
     },
     async created(){
 		strophe.setVM(this);
-		strophe.createConnection();
 		this.user = readLocal('user');
 		if(this.user==null){
 			this.$router.push({name:'login'})
@@ -324,7 +321,7 @@ export default {
 			usernick:this.user.nick,
 			imPassword:this.user.imPassword
 		}
-		strophe.loginIm(userInfo,this.onConnect);
+		strophe.loginIm(userInfo);
 		let friendsData = await API.getFriendsList({
 			uid:this.user.userId
 		});
