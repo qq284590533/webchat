@@ -1,4 +1,5 @@
 import 'strophe.js'
+import dayjs from 'dayjs'
 import Base64 from './base64'
 import { readLocal, saveLocal } from './utils'
 
@@ -62,10 +63,10 @@ function onConnect(status) {
 			console.log(status)
 			console.log('已断开连接')
 			connected = false;
-			loginIm({
-				userId: VM.user.userId,
-				imPassword:VM.user.imPassword
-			})
+			// loginIm({
+			// 	userId: VM.user.userId,
+			// 	imPassword:VM.user.imPassword
+			// })
 			break;
 		case Strophe.Status.CONNECTED:
 			console.log('已连接')
@@ -92,11 +93,17 @@ function onMessage(msg) {
 	let elems = msg.getElementsByTagName('body');
 	let delay = msg.getElementsByTagName('delay');
 	let time;
+	console.log(msg)
+	// console.log(receipt(msg.getAttribute('id')))
+	// console.log(msg.tree())
+	connection.send(receipt(msg.getAttribute('id')));
 	if (type == 'chat' && elems.length > 0) {
 		if (delay.length > 0) {
-			time =	delay[0].getAttribute('stamp')
+			time= dayjs(delay[0].getAttribute('stamp')).format('YYYY-MM-DD HH:mm:ss')
+			// time = new Date(delay[0].getAttribute('stamp')).getTime()
 		}
 		let body = Strophe.getText(elems[0]);
+		console.log(base64.decode(body))
 		let sender_uid = from.substring(0, from.indexOf('@'));
 		let msg = JSON.parse(base64.decode(body));
 		let msgInfo = {
@@ -153,12 +160,64 @@ function onMessage(msg) {
 	return true;
 }
 
+function receipt(id){
+	let message = document.createElement('message');
+	message.setAttribute('to','app.im');
+	message.setAttribute('id',new Date().getTime());
+	message.setAttribute('type','chat');
+	let received = document.createElement('received');
+	received.setAttribute('xmlns','urn:xmpp:receipts')
+	received.setAttribute('id', id)
+	message.appendChild(received)
+	return message	
+}
+
+function S4() {
+	return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+}
+function guid() {
+	return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+}
+
 function sendMsg(msgObj,inputBox){
-	msgObj.to = exChangeJid(msgObj.to)
-	msgObj.from = exChangeJid(msgObj.from)
-	console.log(msgObj)
-	let msg = $msg(msgObj).c("body",null,inputBox.value);
+	let msgId = guid();
+	let time = new Date().getTime();
+	let data = {
+		data:{
+			ext:{
+				nick:VM.user.nick,
+				avatar:VM.user.avatar,
+				userId:VM.user.userId,
+			},
+			msgType:2001,
+			msgId:msgId,
+			from:msgObj.from,
+			to:msgObj.to,
+			body:{
+				content:inputBox.value
+			},
+			chatType:1
+		},
+		type:2000
+	};
+	let bodyContent =  base64.encode(JSON.stringify(data))
+	let msg = $msg({
+		to:exChangeJid(msgObj.to),
+		from:exChangeJid(msgObj.from),
+		type:'chat',
+		id:msgId
+	})
+	.c("body",null,bodyContent)
+	.c('request',{xmlns:'urn:xmpp:receipts'},'')
+	.c('stamp',null,time)
+	.c('delay',{
+		urn:'urn:xmpp:delay',
+		stamp:time,
+		from:'app.im',
+	},'')
 	if(connected){
+		// console.log(base64.decode(Strophe.getText(msg.tree().getElementsByTagName('body')[0])))
+		// console.log(msg.tree());
 		connection.send(msg.tree());
 	}
 	inputBox.value = ''

@@ -264,7 +264,10 @@ export default {
 			activeMessageView:'',
 			activeObject:{}
         }
-    },
+	},
+	filters:{
+
+	},
     watch:{
 		activeMessageView(newval,oldval){
 			this.buildTalkView(newval)
