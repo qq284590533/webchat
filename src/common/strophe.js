@@ -87,57 +87,62 @@ function onConnect(status) {
  */
 function onMessage(msg) {
 	console.log('来新消息了！');
+	console.log(msg)
+	let elems = msg.getElementsByTagName('body');
+	let body = Strophe.getText(elems[0]);
+	let cont = JSON.parse(base64.decode(body));
+	console.log(cont)
+	console.log('---------------------');
+	//消息回执
+	// receipt(msg.getAttribute('id'))
+	saveMsg(msg);
+	return true;
+}
+
+function saveMsg(msg){
 	let user = VM.user
-	let from = msg.getAttribute('from');
 	let type = msg.getAttribute('type');
 	let elems = msg.getElementsByTagName('body');
 	let delay = msg.getElementsByTagName('delay');
 	let time;
-	console.log(msg)
-	// console.log(receipt(msg.getAttribute('id')))
-	// console.log(msg.tree())
-	connection.send(receipt(msg.getAttribute('id')));
 	if (type == 'chat' && elems.length > 0) {
 		if (delay.length > 0) {
-			time= dayjs(delay[0].getAttribute('stamp')).format('YYYY-MM-DD HH:mm:ss')
-			// time = new Date(delay[0].getAttribute('stamp')).getTime()
+			time= delay[0].getAttribute('stamp')
 		}
 		let body = Strophe.getText(elems[0]);
-		console.log(base64.decode(body))
-		let sender_uid = from.substring(0, from.indexOf('@'));
 		let msg = JSON.parse(base64.decode(body));
 		let msgInfo = {
-			sender_uid:sender_uid,
-			sender_nick: VM.friendsJson[sender_uid].nick,
-			sender_avatar: VM.friendsJson[sender_uid].avatar,
+			sender_uid:msg.data.from,
+			sender_nick: msg.data.ext.nick,
+			sender_avatar: msg.data.ext.avatar,
 			msg:msg,
 			content:msg.data.body.content,
-			time: time,
+			time: new Date(time).getTime(),
 			type: type,
 		};
-		let other_jid = from.substring(0, from.indexOf('@'));
+		let other_jid;
+		if(msg.data.from==user.userId){
+			other_jid = msg.data.to
+		}else{
+			other_jid = msg.data.from	
+		}
 		if(!VM.messageJson[other_jid]){
 			VM.messageJson[other_jid]=[]
 			VM.messageJson[other_jid].unshift(msgInfo)
 		}else{
-			let item = VM.messageJson[other_jid];
+			let thisMsg = VM.messageJson[other_jid];
 			let status = false;
-			for(let i=0; i<item.length; i++){
-				let msgId = item[i].msg.data.msgId;
-				let msgInfoMsgId = JSON.parse(base64.decode(body)).data.msgId;
-				if(msgId==msgInfoMsgId){
+			for(let i=0; i<thisMsg.length; i++){
+				let msgId = thisMsg[i].msg.data.msgId;
+				let newMsgId = msg.data.msgId;
+				if(msgId==newMsgId){
 					status=true;
 					break;
 				}
 			}
 			if(!status){
-				VM.messageJson[other_jid].push(msgInfo);
+				VM.messageJson[other_jid].unshift(msgInfo);
 			}
-			VM.messageJson[other_jid].sort((a,b)=>{
-				let timeA = new Date(a.time).getTime()
-				let timeB = new Date(b.time).getTime()
-				return timeB-timeA
-			})
 		}
 		saveLocal('MESSAGE_JSON_'+user.userId,VM.messageJson)
 		let talkList=[];
@@ -149,39 +154,35 @@ function onMessage(msg) {
 		}
 		VM.talkList = talkList;
 		VM.talkList.sort((a,b)=>{
-			let timeA = new Date(a.time).getTime()
-			let timeB = new Date(b.time).getTime()
+			let timeA = a.time
+			let timeB = b.time
 			return timeB-timeA
 		})
 		saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
 		saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkList)
+		setTimeout(function(){
+			VM.$refs.officeText.scrollTop = VM.$refs.officeText.scrollHeight;
+		},0)
 	}
-	console.log('---------------------');
-	return true;
 }
 
+
+
+//消息回执方法
 function receipt(id){
-	let message = document.createElement('message');
-	message.setAttribute('to','app.im');
-	message.setAttribute('id',new Date().getTime());
-	message.setAttribute('type','chat');
-	let received = document.createElement('received');
-	received.setAttribute('xmlns','urn:xmpp:receipts')
-	received.setAttribute('id', id)
-	message.appendChild(received)
-	return message	
+	let msg = $msg({
+		to:'app.im',
+		id:guid(),
+		type:'chat',
+	}).c('received',{xmlns:'urn:xmpp:receipts',id:id})
+	connection.send(msg.tree());
 }
 
-function S4() {
-	return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-}
-function guid() {
-	return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
-}
+
 
 function sendMsg(msgObj,inputBox){
 	let msgId = guid();
-	let time = new Date().getTime();
+	let time = new Date();
 	let data = {
 		data:{
 			ext:{
@@ -201,6 +202,8 @@ function sendMsg(msgObj,inputBox){
 		type:2000
 	};
 	let bodyContent =  base64.encode(JSON.stringify(data))
+
+	//构建消息体
 	let msg = $msg({
 		to:exChangeJid(msgObj.to),
 		from:exChangeJid(msgObj.from),
@@ -219,10 +222,23 @@ function sendMsg(msgObj,inputBox){
 		// console.log(base64.decode(Strophe.getText(msg.tree().getElementsByTagName('body')[0])))
 		// console.log(msg.tree());
 		connection.send(msg.tree());
+		if(VM.tabActive!=1){
+			VM.tabActive=1
+		}
+		inputBox.value = ''
+		saveMsg(msg.tree())
+	}else{
+		alert('与聊天服务器断开连接……')
 	}
-	inputBox.value = ''
 }
 
+//创建唯一表示 uuid
+function S4() {
+	return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+}
+function guid() {
+	return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+}
 
 export {
 	Strophe,

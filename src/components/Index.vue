@@ -64,13 +64,13 @@
 			</div>
 			<div class="office_text">
 				<ul class="user_list" id="talk_list">
-					<li :class="{'user_active':msg.sender_uid==activeMessageView}" v-for="(msg,index) in talkList" :key="index" @click="changeObject(msg.sender_uid)">
-						<div class="user_head"><img :src="msg.sender_avatar"/></div>
+					<li :class="{'user_active':judge(msg).active}" v-for="(msg,index) in talkList" :key="index" @click="changeObject(judge(msg).uid)">
+						<div class="user_head"><img :src="judge(msg).avatar"/></div>
 						<div class="user_text">
-							<p class="user_name">{{ msg.sender_nick }}</p>
-							<p class="user_message">{{ msg.content }}</p>
+							<p class="user_name">{{ judge(msg).nick }}</p>
+							<p class="user_message">{{ judge(msg).content }}</p>
 						</div>
-						<div class="user_time">{{ msg.time }}</div>
+						<div class="user_time">{{ judge(msg).time }}</div>
 					</li>
 					<!-- <li onclick="chosefrides(this,'62003002@app.im')">
 						<div class="user_head"><img src="/static/images/head/2.jpg"/></div>
@@ -198,8 +198,8 @@
 			
 			<!--聊天内容-->
 			<div class="windows_body">
-				<div ref="officeText" class="office_text message_view" style="height: 100%;">
-					<ul class="content" id="chatbox">
+				<div class="office_text message_view" style="height: 100%;">
+					<ul ref="officeText"  class="content" id="chatbox">
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
@@ -209,7 +209,7 @@
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<li class="other" v-for="(message,index) in messageJson[activeMessageView]" :key="index"><img :src="message.sender_avatar||'/static/images/contact.png'" :title="message.nick"><span>{{message.content}}</span></li>
+						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in messageJson[activeMessageView]" :key="index"><img :src="message.sender_avatar||'/static/images/contact.png'" :title="message.sender_nick"><span>{{message.content}}</span></li>
 						<!-- <li class="me"><img src="/static/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li> -->
 					</ul>
 				</div>
@@ -272,9 +272,31 @@ export default {
 		activeMessageView(newval,oldval){
 			this.buildTalkView(newval)
 			this.activeObject=this.friendsJson[newval]
-		}
+		},
     },
     methods:{
+		judge(msg){
+			let suid,avatar,nick;
+			if(msg.sender_uid==this.user.userId){
+				suid = msg.msg.data.to;
+				avatar = this.friendsJson[suid].avatar;
+				nick = this.friendsJson[suid].avatar;
+			}else{
+				suid = msg.sender_uid;
+				avatar = msg.sender_avatar;
+				nick = msg.sender_nick;
+			}
+			let active = suid==this.activeMessageView
+			let data = {
+				active:active,
+				uid:suid,
+				avatar:avatar,
+				nick:nick,
+				time:msg.time,
+				content:msg.content
+			}
+			return data
+		},
 		changeObject(uid){
 			this.activeMessageView = uid;
 			// this.activeObject = this.friendsJson[uid];
@@ -282,6 +304,9 @@ export default {
 		buildTalkView(uid){
 			let _this = this;
 			this.activeMessageList = this.messageJson[uid];
+			setTimeout(function(){
+				_this.$refs.officeText.scrollTop = _this.$refs.officeText.scrollHeight;
+			},0)
 		},
 		sendMsg(){
 			let tojid = this.activeMessageView;
@@ -303,7 +328,7 @@ export default {
 		strophe.setVM(this);
 		this.user = readLocal('user');
 		let uid = this.user.userId;
-		if(this.user==null){
+		if(!this.user){
 			this.$router.push({name:'login'})
 		}
 		this.friendsJson = readLocal('FRIENDS_LIST_'+uid)||{};
@@ -312,7 +337,11 @@ export default {
 		this.talkListJson = readLocal('TALK_LIST_JSON'+uid)||{};
 		this.talkListKey = readLocal('TALK_LIST_KEY_'+uid)||[];
 		if(this.talkList.length){
-			this.activeMessageView = this.talkList[0].sender_uid
+			if(this.talkList[0].sender_uid==this.user.userId){
+				this.activeMessageView = this.talkList[0].msg.data.to
+			}else{
+				this.activeMessageView = this.talkList[0].sender_uid
+			}
 			this.activeObject = this.friendsJson[this.activeMessageView];
 		}
 		let userInfo = {
