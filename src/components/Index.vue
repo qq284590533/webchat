@@ -64,7 +64,7 @@
 			</div>
 			<div class="office_text">
 				<ul class="user_list" id="talk_list">
-					<li :class="{'user_active':msg.sender_uid==activeMessageView}" v-for="(msg,index) in talkList" :key="index">
+					<li :class="{'user_active':msg.sender_uid==activeMessageView}" v-for="(msg,index) in talkList" :key="index" @click="changeObject(msg.sender_uid)">
 						<div class="user_head"><img :src="msg.sender_avatar"/></div>
 						<div class="user_text">
 							<p class="user_name">{{ msg.sender_nick }}</p>
@@ -123,7 +123,7 @@
 							<p class="user_name">新的朋友</p>
 						</div>
 					</li>
-					<li class="friends-item" v-for="(friend, index) in friendsList" :key="index">
+					<li class="friends-item" v-for="(friend, index) in friendsList" :key="index" @click="changeObject(friend.userId)">
 						<div class="item-box">
 							<img :src="friend.avatar||'/static/images/contact.png'" alt="">
 							<p>{{friend.nick}}</p>
@@ -177,7 +177,7 @@
 		<div class="talk_window">
 			<div class="windows_top">
 				<div class="windows_top_box">
-					<span id="fridesTop"></span>
+					<span id="fridesTop">{{activeObject.nick}}</span>
 					<ul class="window_icon">
 						<li><a href=""><img src="/static/images/icon/icon7.png"/></a></li>
 						<li><a href=""><img src="/static/images/icon/icon8.png"/></a></li>
@@ -198,7 +198,7 @@
 			
 			<!--聊天内容-->
 			<div class="windows_body">
-				<div class="office_text" style="height: 100%;">
+				<div ref="officeText" class="office_text message_view" style="height: 100%;">
 					<ul class="content" id="chatbox">
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
@@ -209,8 +209,8 @@
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
 						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<li class="other"><img src="/static/images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>
-						<li class="me"><img src="/static/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li>
+						<li class="other" v-for="(message,index) in messageJson[activeMessageView]" :key="index"><img :src="message.sender_avatar||'/static/images/contact.png'" :title="message.nick"><span>{{message.content}}</span></li>
+						<!-- <li class="me"><img src="/static/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li> -->
 					</ul>
 				</div>
 			</div>
@@ -223,8 +223,8 @@
 					<a href="javascript:;"></a> -->
 				</div>
 				<div class="input_box">
-					<textarea contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
-					<button id="send">发送（S）</button>
+					<textarea ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
+					<button id="send" @click="sendMsg">发送（S）</button>
 				</div>
 			</div>
 		</div>
@@ -242,93 +242,88 @@ import * as API from '../api/index.js'
 export default {
     data(){
         return {
-            user:null,
+			user:null,
+			userInfo:null,
             status:null,
             tabActive:1,
-            talkList:[],
+            talkList:[{
+				sender_uid:'',
+				sender_avatar:'',
+				sender_nick:'',
+				content:'',
+				time:''
+
+			}],
 			talkListKey:[],
 			talkListJson:{},
 			chatFriend:'',
 			friendsJson:{},
 			friendsList:[],
 			messageJson:{},
+			activeMessageList:[],
 			activeMessageView:'',
+			activeObject:{}
         }
     },
     watch:{
-        // status(newVal,oldVal){
-        //     switch(newVal){
-        //         case 'CONNECTING':
-        //             console.log('正在连接')
-        //             break;
-		//         case 'CONNFAIL':
-		// 			console.log('连接失败')
-        //             break;
-        //         case 'DISCONNECTING':
-        //             console.log('正在断开连接')
-        //             break;
-        //         case 'DISCONNECTED':
-        //             console.log('已断开连接')
-        //             break;
-        //         case 'CONNECTED':
-        //             console.log('已连接')
-        //             this.onConnected()
-        //             break;
-        //         default:
-        //             break;
-        //     }
-		// },
-
+		activeMessageView(newval,oldval){
+			this.buildTalkView(newval)
+			this.activeObject=this.friendsJson[newval]
+		}
     },
     methods:{
-        // onConnect(status) {
-        //     if (status == strophe.Strophe.Status.CONNECTING) {
-        //         this.status = 'CONNECTING'
-        //     } else if (status == strophe.Strophe.Status.CONNFAIL) {
-        //         this.status = 'CONNFAIL'
-        //     } else if (status == strophe.Strophe.Status.DISCONNECTING) {
-        //         this.status = 'DISCONNECTING'
-        //     } else if (status == strophe.Strophe.Status.DISCONNECTED) {
-        //         this.status = 'CONNECTED'
-        //     } else if (status == strophe.Strophe.Status.CONNECTED) {
-        //         this.status = 'CONNECTED'
-        //     }
-        // },
-        // onConnected(){
-		// 	strophe.connection.addHandler(strophe.onMessage, null, 'message', null, null, null);
-		// 	strophe.connection.send(window.$pres().tree());
-		// },
-
-
+		changeObject(uid){
+			this.activeMessageView = uid;
+			// this.activeObject = this.friendsJson[uid];
+		},
+		buildTalkView(uid){
+			let _this = this;
+			this.activeMessageList = this.messageJson[uid];
+		},
+		sendMsg(){
+			let tojid = this.activeMessageView;
+			let jid = this.user.userId;
+			let msg = this.$refs.inputBox.value;
+			if(msg.length == 0){
+				alert('不能发送空消息');
+				return false;
+			}
+			let msgObj = {
+				to:tojid,
+				from:jid,
+				type:'chat',
+			}
+			strophe.sendMsg(msgObj,this.$refs.inputBox);
+		}
     },
     async created(){
 		strophe.setVM(this);
 		this.user = readLocal('user');
+		let uid = this.user.userId;
 		if(this.user==null){
 			this.$router.push({name:'login'})
 		}
-		this.messageJson = readLocal('MESSAGE_JSON_'+this.user.userId)||{};
-		this.talkList = readLocal('TALK_LIST_'+this.user.userId)||[];
-		this.talkListJson = readLocal('TALK_LIST_JSON'+this.user.userId)||{};
-		this.talkListKey = readLocal('TALK_LIST_KEY_'+this.user.userId)||[];
+		this.friendsJson = readLocal('FRIENDS_LIST_'+uid)||{};
+		this.messageJson = readLocal('MESSAGE_JSON_'+uid)||{};
+		this.talkList = readLocal('TALK_LIST_'+uid)||[];
+		this.talkListJson = readLocal('TALK_LIST_JSON'+uid)||{};
+		this.talkListKey = readLocal('TALK_LIST_KEY_'+uid)||[];
 		if(this.talkList.length){
 			this.activeMessageView = this.talkList[0].sender_uid
+			this.activeObject = this.friendsJson[this.activeMessageView];
 		}
 		let userInfo = {
-			avatar:this.user.avatar,
-			tel: this.user.tel,
-			userId: this.user.userId,
-			usernick:this.user.nick,
+			userId: uid,
 			imPassword:this.user.imPassword
 		}
 		strophe.loginIm(userInfo);
 		let friendsData = await API.getFriendsList({
-			uid:this.user.userId
+			uid:uid
 		});
 		friendsData.data.forEach(item=>{
 			this.friendsJson[item.userId] = item;
 		})
-		saveLocal('FRIENDS_LIST_'+this.user.userId,this.friendsJson);
+		saveLocal('FRIENDS_LIST_'+uid,this.friendsJson);
 		for (let item in this.friendsJson){
 			this.friendsList.push(this.friendsJson[item])
 		}
@@ -397,5 +392,16 @@ export default {
 		white-space nowrap
 .office_text
 	overflow-y auto
+.message_view
+	display flex
+	flex-flow column
+	align-items flex-start
+	ul
+		display flex
+		overflow-y auto
+		flex-flow column-reverse
+		li
+			overflow visible
+			padding-top 10px
 </style>
 

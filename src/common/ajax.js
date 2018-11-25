@@ -1,7 +1,7 @@
 function ajax(options) {
 	return new Promise((resolve, reject)=>{
 		options = options || {};
-		options.type = (options.type || "GET").toUpperCase();
+		options.method = (options.method || "GET").toUpperCase();
 		options.dataType = options.dataType || "json";
 
 		var params = formatParams(options.data);
@@ -26,10 +26,10 @@ function ajax(options) {
 		}
 	
 		//连接 和 发送 - 第二步
-		if (options.type == "GET") {
+		if (options.method == "GET") {
 			xhr.open("GET", options.url + "?" + params, true);
 			xhr.send(null);
-		} else if (options.type == "POST") {
+		} else if (options.method == "POST") {
 			xhr.open("POST", options.url, true);
 			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 			xhr.send(params);

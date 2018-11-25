@@ -2,6 +2,7 @@ import ajax from '../common/ajax'
 
 //登录
 export function login(params) {
+	console.log(params)
     return ajax({
 		url: '/api/user/login',
 		method: 'post',
