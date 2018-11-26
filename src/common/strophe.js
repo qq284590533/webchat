@@ -105,9 +105,12 @@ function saveMsg(msg){
 	let elems = msg.getElementsByTagName('body');
 	let delay = msg.getElementsByTagName('delay');
 	let time;
-	if (type == 'chat' && elems.length > 0) {
+	if (type=='chat'||type=='groupchat'&elems.length > 0) {
 		if (delay.length > 0) {
 			time= delay[0].getAttribute('stamp')
+			console.log(time)
+			console.log(dayjs(time).valueOf())
+			// console.log(new Date(time).getTime())
 		}
 		let body = Strophe.getText(elems[0]);
 		let msg = JSON.parse(base64.decode(body));
@@ -124,13 +127,21 @@ function saveMsg(msg){
 		if(msg.data.from==user.userId){
 			other_jid = msg.data.to
 		}else{
-			other_jid = msg.data.from	
+			if(type=='chat'){
+				other_jid = msg.data.from	
+			}
+			if(type=='groupchat'){
+				other_jid = msg.data.to
+			}
 		}
 		if(!VM.messageJson[other_jid]){
-			VM.messageJson[other_jid]=[]
-			VM.messageJson[other_jid].unshift(msgInfo)
+			VM.messageJson[other_jid]={
+				type:type,
+				msgs:[]
+			}
+			VM.messageJson[other_jid].msgs.unshift(msgInfo)
 		}else{
-			let thisMsg = VM.messageJson[other_jid];
+			let thisMsg = VM.messageJson[other_jid].msgs;
 			let status = false;
 			for(let i=0; i<thisMsg.length; i++){
 				let msgId = thisMsg[i].msg.data.msgId;
@@ -141,21 +152,25 @@ function saveMsg(msg){
 				}
 			}
 			if(!status){
-				VM.messageJson[other_jid].unshift(msgInfo);
+				VM.messageJson[other_jid].msgs.unshift(msgInfo);
 			}
 		}
 		saveLocal('MESSAGE_JSON_'+user.userId,VM.messageJson)
 		let talkList=[];
 		for(let key in VM.messageJson){
-			VM.talkListJson[key] = VM.messageJson[key][0];
+			VM.talkListJson[key] = {
+				type: VM.messageJson[key].type,
+				msg:VM.messageJson[key].msgs[0]
+			}
+			// VM.talkListJson[key] = VM.messageJson[key][0];
 		}
 		for(let key in VM.talkListJson){
 			talkList.push(VM.talkListJson[key])
 		}
 		VM.talkList = talkList;
 		VM.talkList.sort((a,b)=>{
-			let timeA = a.time
-			let timeB = b.time
+			let timeA = a.msg.time
+			let timeB = b.msg.time
 			return timeB-timeA
 		})
 		saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
@@ -197,27 +212,44 @@ function sendMsg(msgObj,inputBox){
 			body:{
 				content:inputBox.value
 			},
-			chatType:1
+			chatType:VM.activeMessageViewType=='chat'?1:2
 		},
 		type:2000
 	};
 	let bodyContent =  base64.encode(JSON.stringify(data))
 
 	//构建消息体
-	let msg = $msg({
-		to:exChangeJid(msgObj.to),
-		from:exChangeJid(msgObj.from),
-		type:'chat',
-		id:msgId
-	})
-	.c("body",null,bodyContent)
-	.c('request',{xmlns:'urn:xmpp:receipts'},'')
-	.c('stamp',null,time)
-	.c('delay',{
-		urn:'urn:xmpp:delay',
-		stamp:time,
-		from:'app.im',
-	},'')
+	let msg;
+	if(VM.activeMessageViewType=='chat'){
+		msg = $msg({
+			to:exChangeJid(msgObj.to),
+			from:exChangeJid(msgObj.from),
+			type:'chat',
+			id:msgId
+		})
+		.c("body",null,bodyContent)
+		.c('request',{xmlns:'urn:xmpp:receipts'},'')
+		.c('stamp',null,time)
+		.c('delay',{
+			urn:'urn:xmpp:delay',
+			stamp:time,
+			from:'app.im',
+		},'')
+	}else if(VM.activeMessageViewType=='groupchat'){
+		msg = $msg({
+			to:msgObj.to+'@muc.app.im',
+			from:exChangeJid(msgObj.from),
+			type:'groupchat',
+			id:msgId
+		})
+		.c("body",null,bodyContent)
+		.c('delay',{
+			urn:'urn:xmpp:delay',
+			stamp:time,
+			from:'app.im',
+		},'')
+	}
+	
 	if(connected){
 		// console.log(base64.decode(Strophe.getText(msg.tree().getElementsByTagName('body')[0])))
 		// console.log(msg.tree());

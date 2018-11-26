@@ -4,8 +4,6 @@ function ajax(options) {
 		options.method = (options.method || "GET").toUpperCase();
 		options.dataType = options.dataType || "json";
 
-		var params = formatParams(options.data);
-	
 		//创建 - 非IE6 - 第一步
 		if (window.XMLHttpRequest) {
 			var xhr = new XMLHttpRequest();
@@ -27,11 +25,24 @@ function ajax(options) {
 	
 		//连接 和 发送 - 第二步
 		if (options.method == "GET") {
+			let params = formatParams(options.data);
 			xhr.open("GET", options.url + "?" + params, true);
 			xhr.send(null);
 		} else if (options.method == "POST") {
+			let params;
 			xhr.open("POST", options.url, true);
-			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+			if(options.headers){
+				for (let key in options.headers){
+					xhr.setRequestHeader(key, options.headers[key]);
+				}
+				if(options.headers['Content-Type']&&options.headers['Content-Type']=='application/json'){
+					params =options.data
+				}
+			}else{
+				params = formatParams(options.data)
+				xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+			}
+			// console.log(params)
 			xhr.send(params);
 		}
 	})

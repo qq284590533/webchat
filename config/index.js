@@ -11,15 +11,22 @@ module.exports = {
 		assetsSubDirectory: 'static',
 		assetsPublicPath: '/',
 		proxyTable: {
-			"/": {
+			"/api": {
 				target: "http://api.yichatsystem.com/api/",
 				changeOrigin: true,
 				pathRewrite:{
 					'^/api': '/'
 				}
+			},
+			"/rest": {
+				target: "http://106.14.241.187:19080/rest/",
+				changeOrigin: true,
+				pathRewrite:{
+					'^/rest': '/'
+				}
 			}
 		},
-
+		// http://106.14.241.187:19080/rest/adhoc/muc@muc.app.im
 		// Various Dev Server settings
 		host: 'localhost', // can be overwritten by process.env.HOST
 		port: 8080, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined

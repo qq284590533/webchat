@@ -64,7 +64,7 @@
 			</div>
 			<div class="office_text">
 				<ul class="user_list" id="talk_list">
-					<li :class="{'user_active':judge(msg).active}" v-for="(msg,index) in talkList" :key="index" @click="changeObject(judge(msg).uid)">
+					<li :class="{'user_active':judge(msg).active}" v-for="(msg,index) in talkList" :key="index" @click="changeObject(judge(msg).uid,judge(msg).type)">
 						<div class="user_head"><img :src="judge(msg).avatar"/></div>
 						<div class="user_text">
 							<p class="user_name">{{ judge(msg).nick }}</p>
@@ -84,19 +84,34 @@
 			</div>
 			<div class="office_text">
 				<ul class="friends_list">
-					<li class="friends-item">
-						<p class="">新的朋友</p>
-						<div class="item-box">
-							<img src="/static/images/head/1.jpg"/>
-							<p class="user_name">新的朋友</p>
-						</div>
-					</li>
-					<li class="friends-item" v-for="(friend, index) in friendsList" :key="index" @click="changeObject(friend.userId)">
-						<div class="item-box">
-							<img :src="friend.avatar=='false'||friend.avatar==''?'/static/images/contact.png':friend.avatar" alt="">
-							<p>{{friend.nick}}</p>
-						</div>
-					</li>
+					<div class="grouping">
+						<p class="grouping-title">新的朋友</p>
+						<li class="friends-item">
+							<div class="item-box">
+								<img src="/static/images/head/1.jpg"/>
+								<p class="user_name">新的朋友</p>
+							</div>
+						</li>
+					</div>
+
+					<div class="grouping" v-show="groupList.length">
+						<p class="grouping-title">群聊</p>
+						<li class="friends-item" v-for="(group, index) in groupList" :key="index" @click="changeObject(group.gid,'groupchat')">
+							<div class="item-box">
+								<img :src="group.imgurlde||'/static/images/contact.png'" alt="">
+								<p>{{group.name}}</p>
+							</div>
+						</li>
+					</div>
+					<div class="grouping">
+						<!-- <p class="grouping-title">群聊</p> -->
+						<li class="friends-item" v-for="(friend, index) in friendsList" :key="index" @click="changeObject(friend.userId,'chat')">
+							<div class="item-box">
+								<img :src="friend.avatar=='false'||friend.avatar==''?'/static/images/contact.png':friend.avatar" alt="">
+								<p>{{friend.nick}}</p>
+							</div>
+						</li>
+					</div>
 				</ul>
 			</div>	
 		</div>
@@ -168,7 +183,7 @@
 			<div class="windows_body">
 				<div class="office_text message_view" style="height: 100%;">
 					<ul ref="officeText"  class="content" id="chatbox">
-						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in messageJson[activeMessageView]" :key="index"><img :src="message.sender_avatar=='false'?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick"><span>{{message.content}}</span></li>
+						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in activeMessageList" :key="index"><img :src="message.sender_avatar=='false'||message.sender_avatar==''?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick"><span>{{message.content}}</span></li>
 					</ul>
 				</div>
 			</div>
@@ -205,21 +220,27 @@ export default {
             status:null,
             tabActive:1,
             talkList:[{
-				sender_uid:'',
-				sender_avatar:'',
-				sender_nick:'',
-				content:'',
-				time:''
-
+				type:'',
+				msg:{
+					sender_uid:'',
+					sender_avatar:'',
+					sender_nick:'',
+					content:'',
+					time:''
+				}
 			}],
 			talkListKey:[],
 			talkListJson:{},
 			chatFriend:'',
 			friendsJson:{},
+			groupJson:{},
 			friendsList:[],
+			groupList:[],
 			messageJson:{},
 			activeMessageList:[],
 			activeMessageView:'',
+			activeMessageViewType:'',
+			activeMessageJson:{},
 			activeObject:{}
         }
 	},
@@ -228,10 +249,10 @@ export default {
 			let now = dayjs()
 			let n_m = now.month();
 			let n_d = now.date();
-			let M = dayjs(val).month('MM');
-			let D = dayjs(val).date('DD');
-			let H = dayjs(val).hour('H');
-			let m = dayjs(val).minute('mm');
+			let M = dayjs(val).month();
+			let D = dayjs(val).date();
+			let H = dayjs(val).hour();
+			let m = dayjs(val).minute();
 			if(M==n_m){
 				if(D==n_d){
 					return  H+':'+m
@@ -245,43 +266,67 @@ export default {
 	},
     watch:{
 		activeMessageView(newval,oldval){
-			this.buildTalkView(newval)
-			this.activeObject=this.friendsJson[newval]
+			this.buildTalkView(newval);
+			if(this.activeMessageViewType=='groupchat'){
+				this.activeObject=this.groupJson[newval];
+				if(this.groupJson[newval]){
+					console.log(this.groupJson[newval])
+					this.activeObject.nick = this.groupJson[newval].name;
+				}
+			}else if(this.activeMessageViewType=='chat'){
+				this.activeObject=this.friendsJson[newval];
+			}
+			this.activeMessageList = this.messageJson[newval].msgs;
 		},
     },
     methods:{
-		judge(msg){
+		judge(oMsg){
 			let suid,avatar,nick;
-			if(msg.sender_uid==this.user.userId){
-				suid = msg.msg.data.to;
-				if(this.friendsJson[suid].avatar==''||this.friendsJson[suid].avatar=='false'){
-					avatar = '/static/images/contact.png';
-				}else{
-					avatar = this.friendsJson[suid].avatar;
+			if(oMsg.type=='groupchat'){
+				suid = oMsg.msg.msg.data.to
+				if(this.groupJson[suid]){
+					if(this.groupJson[suid].imgurlde==''||this.groupJson[suid].imgurlde=='false'){
+						avatar = '/static/images/contact.png';
+					}else{
+						avatar = this.groupJson[suid].imgurlde;
+					}
+					nick = this.groupJson[suid].name;
 				}
-				nick = this.friendsJson[suid].nick;
-			}else{
-				suid = msg.sender_uid;
-				if(msg.sender_avatar==''||msg.sender_avatar=='false'){
-					avatar = '/static/images/contact.png';
+			}else if(oMsg.type=='chat'){
+				if(oMsg.msg.sender_uid==this.user.userId){
+					suid = oMsg.msg.msg.data.to;
+					if(this.friendsJson[suid].avatar==''||this.friendsJson[suid].avatar=='false'){
+						avatar = '/static/images/contact.png';
+					}else{
+						avatar = this.friendsJson[suid].avatar;
+					}
+					nick = this.friendsJson[suid].nick;
 				}else{
-					avatar = msg.sender_avatar;
+					suid = oMsg.msg.sender_uid;
+					if(oMsg.msg.sender_avatar==''||oMsg.msg.sender_avatar=='false'){
+						avatar = '/static/images/contact.png';
+					}else{
+						avatar = oMsg.msg.sender_avatar;
+					}
+					nick = oMsg.msg.sender_nick;
 				}
-				nick = msg.sender_nick;
-			}
+			}			
+
 			let active = suid==this.activeMessageView
 			let data = {
 				active:active,
 				uid:suid,
 				avatar:avatar,
 				nick:nick,
-				time:msg.time,
-				content:msg.content
+				time:oMsg.msg.time,
+				content:oMsg.msg.content,
+				type:oMsg.type
 			}
 			return data
 		},
-		changeObject(uid){
+		changeObject(uid,type){
 			this.activeMessageView = uid;
+			this.activeMessageViewType = type;
 			// this.activeObject = this.friendsJson[uid];
 		},
 		buildTalkView(uid){
@@ -306,7 +351,7 @@ export default {
 			}
 			strophe.sendMsg(msgObj,this.$refs.inputBox);
 		}
-    },
+	},
     async created(){
 		strophe.setVM(this);
 		this.user = readLocal('user');
@@ -320,29 +365,61 @@ export default {
 		this.talkListJson = readLocal('TALK_LIST_JSON'+uid)||{};
 		this.talkListKey = readLocal('TALK_LIST_KEY_'+uid)||[];
 		if(this.talkList.length){
-			if(this.talkList[0].sender_uid==this.user.userId){
-				this.activeMessageView = this.talkList[0].msg.data.to
-			}else{
-				this.activeMessageView = this.talkList[0].sender_uid
+			if(this.talkList[0].type=='chat'){
+				if(this.talkList[0].msg.sender_uid==this.user.userId){
+					this.activeMessageView = this.talkList[0].msg.msg.data.to
+				}else{
+					this.activeMessageView = this.talkList[0].msg.sender_uid
+				}
+				// this.activeObject = this.friendsJson[this.activeMessageView];
+			}else if(this.talkList[0].type=='groupchat'){
+				this.activeMessageView = this.talkList[0].msg.msg.data.to
+				// this.activeObject = this.friendsJson[this.activeMessageView];
 			}
-			this.activeObject = this.friendsJson[this.activeMessageView];
 		}
 		let userInfo = {
 			userId: uid,
 			imPassword:this.user.imPassword
 		}
+
+		//登录聊天服务器
 		strophe.loginIm(userInfo);
+
+		//获取好友列表
 		let friendsData = await API.getFriendsList({
 			uid:uid
 		});
 		friendsData.data.forEach(item=>{
+			item.isGroup = false;
 			this.friendsJson[item.userId] = item;
 		})
+
+		//存储好友列表到本地
 		saveLocal('FRIENDS_LIST_'+uid,this.friendsJson);
 		for (let item in this.friendsJson){
 			this.friendsList.push(this.friendsJson[item])
 		}
 
+		//获取群列表
+		let groupData = await API.getGroupList({
+			command: {
+				node: "group-get",
+				fields: [{
+					var: "uid",
+					value: this.user.userId
+				}]
+			}
+		});
+		groupData.command.fields.forEach(item=>{
+			let groupId = item.gid
+			item.isGroup = true;
+			this.groupJson[groupId] = item;
+		})
+		//存储群列表到本地
+		saveLocal('GROUP_LIST_'+uid,this.groupJson);
+		for (let item in this.groupJson){
+			this.groupList.push(this.groupJson[item])
+		}
     }
 }
 </script>
@@ -391,7 +468,6 @@ export default {
 	text-align left
 	padding 12px
 	overflow hidden
-	border-bottom 1px solid #dddbdb
 	cursor pointer
 	img 
 		width 40px
@@ -420,5 +496,11 @@ export default {
 			padding-top 10px
 .user_head
 	background none
+.grouping
+	border-bottom 1px solid #dddbdb
+	.grouping-title
+		font-size 12px
+		padding 12px
+		color #999999
 </style>
 

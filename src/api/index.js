@@ -13,7 +13,7 @@ export function login(params) {
 
 //添加好友
 export function addFriends(params) {
-		return ajax({
+	return ajax({
 		url: '/api/user/setFriends',
 		method: 'post',
 		dataType: "jsonp",
@@ -23,10 +23,25 @@ export function addFriends(params) {
 
 //获取好友
 export function getFriendsList(params) {
-		return ajax({
+	return ajax({
 		url: '/api/user/getContactList',
 		method: 'post',
 		dataType: "jsonp",
 		data: params,
+	})
+}
+
+//获取群列表
+export function getGroupList(params) {
+	return ajax({
+		url: '/rest/adhoc/muc@muc.app.im',
+		method: 'post',
+		dataType: "jsonp",
+		data:  JSON.stringify(params),
+		headers:{
+			'Content-Type':'application/json',
+			'Authorization': 'Basic YWRtaW5AYXBwLmltOjEyMzQ1NkBhcHA=',
+			'None-AES': '1'
+		}
 	})
 }
