@@ -70,40 +70,8 @@
 							<p class="user_name">{{ judge(msg).nick }}</p>
 							<p class="user_message">{{ judge(msg).content }}</p>
 						</div>
-						<div class="user_time">{{ judge(msg).time }}</div>
+						<div class="user_time">{{ judge(msg).time | formatDate }}</div>
 					</li>
-					<!-- <li onclick="chosefrides(this,'62003002@app.im')">
-						<div class="user_head"><img src="/static/images/head/2.jpg"/></div>
-						<div class="user_text">
-							<p class="user_name">62003002@app.im</p>
-							<p class="user_message">[小程序]</p>
-						</div>
-						<div class="user_time">11:03</div>
-					</li>
-					<li onclick="chosefrides(this,'')">
-						<div class="user_head"><img src="/static/images/head/3.jpg"/></div>
-						<div class="user_text">
-							<p class="user_name">十里老街秋名山车神车队</p>
-							<p class="user_message">乞讨两块交个话费</p>
-						</div>
-						<div class="user_time">昨天</div>
-					</li>
-					<li onclick="chosefrides(this,'')">
-						<div class="user_head"><img src="/static/images/head/4.jpg"/></div>
-						<div class="user_text">
-							<p class="user_name">阿杰</p>
-							<p class="user_message">[动画表情]</p>
-						</div>
-						<div class="user_time">昨天</div>
-					</li>
-					<li onclick="chosefrides(this,'')">
-						<div class="user_head"><img src="/static/images/head/5.jpg"/></div>
-						<div class="user_text">
-							<p class="user_name">订阅号</p>
-							<p class="user_message">庐山国际水彩艺术节：</p>
-						</div>
-						<div class="user_time">星期三</div>
-					</li> -->
 				</ul>
 			</div>	
 		</div>
@@ -125,7 +93,7 @@
 					</li>
 					<li class="friends-item" v-for="(friend, index) in friendsList" :key="index" @click="changeObject(friend.userId)">
 						<div class="item-box">
-							<img :src="friend.avatar||'/static/images/contact.png'" alt="">
+							<img :src="friend.avatar=='false'||friend.avatar==''?'/static/images/contact.png':friend.avatar" alt="">
 							<p>{{friend.nick}}</p>
 						</div>
 					</li>
@@ -184,7 +152,7 @@
 						<li><a href=""><img src="/static/images/icon/icon9.png"/></a></li>
 						<li><a href=""><img src="/static/images/icon/icon10.png"/></a></li>
 					</ul>
-					<div class="extend am-btn am-btn-success" data-am-offcanvas="{target: '#doc-oc-demo3'}"></div>
+					<div class="extend" data-am-offcanvas="{target: '#doc-oc-demo3'}"></div>
 					<!-- 侧边栏内容 -->
 					<div id="doc-oc-demo3" class="am-offcanvas">
 						<div class="am-offcanvas-bar am-offcanvas-bar-flip">
@@ -200,17 +168,7 @@
 			<div class="windows_body">
 				<div class="office_text message_view" style="height: 100%;">
 					<ul ref="officeText"  class="content" id="chatbox">
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<!--<li class="other"><img src="images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>-->
-						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in messageJson[activeMessageView]" :key="index"><img :src="message.sender_avatar||'/static/images/contact.png'" :title="message.sender_nick"><span>{{message.content}}</span></li>
-						<!-- <li class="me"><img src="/static/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li> -->
+						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in messageJson[activeMessageView]" :key="index"><img :src="message.sender_avatar=='false'?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick"><span>{{message.content}}</span></li>
 					</ul>
 				</div>
 			</div>
@@ -266,7 +224,24 @@ export default {
         }
 	},
 	filters:{
-
+		formatDate(val){
+			let now = dayjs()
+			let n_m = now.month();
+			let n_d = now.date();
+			let M = dayjs(val).month('MM');
+			let D = dayjs(val).date('DD');
+			let H = dayjs(val).hour('H');
+			let m = dayjs(val).minute('mm');
+			if(M==n_m){
+				if(D==n_d){
+					return  H+':'+m
+				}else if(n_d-D==1){
+					return  '昨天'
+				}
+			}else{
+				return  M+'月'+D+'日 '
+			}
+		}
 	},
     watch:{
 		activeMessageView(newval,oldval){
@@ -279,11 +254,19 @@ export default {
 			let suid,avatar,nick;
 			if(msg.sender_uid==this.user.userId){
 				suid = msg.msg.data.to;
-				avatar = this.friendsJson[suid].avatar;
-				nick = this.friendsJson[suid].avatar;
+				if(this.friendsJson[suid].avatar==''||this.friendsJson[suid].avatar=='false'){
+					avatar = '/static/images/contact.png';
+				}else{
+					avatar = this.friendsJson[suid].avatar;
+				}
+				nick = this.friendsJson[suid].nick;
 			}else{
 				suid = msg.sender_uid;
-				avatar = msg.sender_avatar;
+				if(msg.sender_avatar==''||msg.sender_avatar=='false'){
+					avatar = '/static/images/contact.png';
+				}else{
+					avatar = msg.sender_avatar;
+				}
 				nick = msg.sender_nick;
 			}
 			let active = suid==this.activeMessageView
@@ -435,5 +418,7 @@ export default {
 		li
 			overflow visible
 			padding-top 10px
+.user_head
+	background none
 </style>
 

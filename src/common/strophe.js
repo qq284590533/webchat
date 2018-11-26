@@ -94,7 +94,7 @@ function onMessage(msg) {
 	console.log(cont)
 	console.log('---------------------');
 	//消息回执
-	// receipt(msg.getAttribute('id'))
+	receipt(msg.getAttribute('id'))
 	saveMsg(msg);
 	return true;
 }
