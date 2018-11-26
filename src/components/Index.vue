@@ -276,7 +276,9 @@ export default {
 			}else if(this.activeMessageViewType=='chat'){
 				this.activeObject=this.friendsJson[newval];
 			}
-			this.activeMessageList = this.messageJson[newval].msgs;
+			if(this.messageJson[newval]){
+				this.activeMessageList = this.messageJson[newval].msgs;
+			}
 		},
     },
     methods:{
@@ -327,7 +329,6 @@ export default {
 		changeObject(uid,type){
 			this.activeMessageView = uid;
 			this.activeMessageViewType = type;
-			// this.activeObject = this.friendsJson[uid];
 		},
 		buildTalkView(uid){
 			let _this = this;
@@ -371,10 +372,8 @@ export default {
 				}else{
 					this.activeMessageView = this.talkList[0].msg.sender_uid
 				}
-				// this.activeObject = this.friendsJson[this.activeMessageView];
 			}else if(this.talkList[0].type=='groupchat'){
 				this.activeMessageView = this.talkList[0].msg.msg.data.to
-				// this.activeObject = this.friendsJson[this.activeMessageView];
 			}
 		}
 		let userInfo = {
