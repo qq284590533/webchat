@@ -191,9 +191,10 @@
 			<div class="windows_input" id="talkbox">
 				<div class="input_icon">
 					<!-- <a href="javascript:;"></a> -->
-					<a href="javascript:;"   position:absolute=""><input onchange="FirstImg()" name="firstImg" style="opacity:0;position:absolute" type="file" id="FirstfileImg" multiple=""></a><!-- 
-					<a href="javascript:;"></a>
-					<a href="javascript:;"></a> -->
+					<div ref="container" id="container">
+						<button ref="addImg" id="addImg" class="btn"></button>
+					</div>
+					<!-- <a href="javascript:;"><input onchange="FirstImg()" name="firstImg" style="opacity:0;position:absolute" type="file" id="FirstfileImg" multiple=""></a>-->
 				</div>
 				<div class="input_box">
 					<textarea ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
@@ -211,6 +212,7 @@ import dayjs from 'dayjs'
 import ajax from '../common/ajax'
 import { readLocal, sortChinese, objSortFun, saveLocal} from '../common/utils'
 import * as strophe from '../common/strophe.js'
+import setVue from '../common/upload.js'
 import * as API from '../api/index.js'
 export default {
     data(){

@@ -109,8 +109,10 @@ function saveMsg(msg){
 		if (delay.length > 0) {
 			time= delay[0].getAttribute('stamp')
 			console.log(time)
+			console.log(dayjs(time))
+			console.log(new Date())
 			console.log(dayjs(time).valueOf())
-			// console.log(new Date(time).getTime())
+			console.log(new Date(time).getTime())
 		}
 		let body = Strophe.getText(elems[0]);
 		let msg = JSON.parse(base64.decode(body));
@@ -120,7 +122,7 @@ function saveMsg(msg){
 			sender_avatar: msg.data.ext.avatar,
 			msg:msg,
 			content:msg.data.body.content,
-			time: new Date(time).getTime(),
+			time: dayjs(time).valueOf(),
 			type: type,
 		};
 		let other_jid;
