@@ -192,9 +192,9 @@
 				<div class="input_icon">
 					<!-- <a href="javascript:;"></a> -->
 					<div ref="container" id="container">
-						<button ref="addImg" id="addImg" class="btn"></button>
+						<button ref="addImg" id="addImg" class="btn">111</button>
 					</div>
-					<!-- <a href="javascript:;"><input onchange="FirstImg()" name="firstImg" style="opacity:0;position:absolute" type="file" id="FirstfileImg" multiple=""></a>-->
+					<!-- <a href="javascript:;"><input onchange="FirstImg()" name="firstImg" style="opacity:0;position:absolute" type="file" id="FirstfileImg" multiple=""></a> -->
 				</div>
 				<div class="input_box">
 					<textarea ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
@@ -212,7 +212,7 @@ import dayjs from 'dayjs'
 import ajax from '../common/ajax'
 import { readLocal, sortChinese, objSortFun, saveLocal} from '../common/utils'
 import * as strophe from '../common/strophe.js'
-import setVue from '../common/upload.js'
+import { creatUploader } from '../common/upload.js'
 import * as API from '../api/index.js'
 export default {
     data(){
@@ -270,8 +270,8 @@ export default {
 		activeMessageView(newval,oldval){
 			this.buildTalkView(newval);
 			if(this.activeMessageViewType=='groupchat'){
-				this.activeObject=this.groupJson[newval];
 				if(this.groupJson[newval]){
+					this.activeObject=this.groupJson[newval];
 					console.log(this.groupJson[newval])
 					this.activeObject.nick = this.groupJson[newval].name;
 				}
@@ -362,22 +362,7 @@ export default {
 		if(!this.user){
 			this.$router.push({name:'login'})
 		}
-		this.friendsJson = readLocal('FRIENDS_LIST_'+uid)||{};
-		this.messageJson = readLocal('MESSAGE_JSON_'+uid)||{};
-		this.talkList = readLocal('TALK_LIST_'+uid)||[];
-		this.talkListJson = readLocal('TALK_LIST_JSON'+uid)||{};
-		this.talkListKey = readLocal('TALK_LIST_KEY_'+uid)||[];
-		if(this.talkList.length){
-			if(this.talkList[0].type=='chat'){
-				if(this.talkList[0].msg.sender_uid==this.user.userId){
-					this.activeMessageView = this.talkList[0].msg.msg.data.to
-				}else{
-					this.activeMessageView = this.talkList[0].msg.sender_uid
-				}
-			}else if(this.talkList[0].type=='groupchat'){
-				this.activeMessageView = this.talkList[0].msg.msg.data.to
-			}
-		}
+
 		let userInfo = {
 			userId: uid,
 			imPassword:this.user.imPassword
@@ -421,7 +406,30 @@ export default {
 		for (let item in this.groupJson){
 			this.groupList.push(this.groupJson[item])
 		}
-    }
+
+		this.friendsJson = readLocal('FRIENDS_LIST_'+uid)||{};
+		this.messageJson = readLocal('MESSAGE_JSON_'+uid)||{};
+		this.talkList = readLocal('TALK_LIST_'+uid)||[];
+		this.talkListJson = readLocal('TALK_LIST_JSON'+uid)||{};
+		this.talkListKey = readLocal('TALK_LIST_KEY_'+uid)||[];
+		if(this.talkList.length){
+			let talkList = this.talkList[0];
+			if(talkList.type=='chat'){
+				if(talkList.msg.sender_uid==this.user.userId){
+					this.activeMessageView = talkList.msg.msg.data.to;
+				}else{
+					this.activeMessageView = talkList.msg.sender_uid
+				}
+			}else if(talkList.type=='groupchat'){
+				this.activeMessageView = talkList.msg.msg.data.to
+			}
+			this.activeMessageViewType = talkList.type;
+			console.log(this.activeMessageViewType)
+		}
+	},
+	mounted(){
+		creatUploader(this);
+	}
 }
 </script>
 

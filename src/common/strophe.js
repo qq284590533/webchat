@@ -237,6 +237,7 @@ function sendMsg(msgObj,inputBox){
 			stamp:time,
 			from:'app.im',
 		},'')
+		console.log(msg)
 	}else if(VM.activeMessageViewType=='groupchat'){
 		msg = $msg({
 			to:msgObj.to+'@muc.app.im',
@@ -250,11 +251,12 @@ function sendMsg(msgObj,inputBox){
 			stamp:time,
 			from:'app.im',
 		},'')
+		console.log(msg)
 	}
 	
 	if(connected){
 		// console.log(base64.decode(Strophe.getText(msg.tree().getElementsByTagName('body')[0])))
-		// console.log(msg.tree());
+		console.log(msg);
 		connection.send(msg.tree());
 		if(VM.tabActive!=1){
 			VM.tabActive=1
