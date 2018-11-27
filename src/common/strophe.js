@@ -108,22 +108,23 @@ function saveMsg(msg){
 	if (type=='chat'||type=='groupchat'&elems.length > 0) {
 		if (delay.length > 0) {
 			time= delay[0].getAttribute('stamp')
-			console.log(time)
-			console.log(dayjs(time))
-			console.log(new Date())
-			console.log(dayjs(time).valueOf())
-			console.log(new Date(time).getTime())
+			// console.log(time)
+			// console.log(dayjs(time))
+			// console.log(new Date())
+			// console.log(dayjs(time).valueOf())
+			// console.log(new Date(time).getTime())
 		}
 		let body = Strophe.getText(elems[0]);
 		let msg = JSON.parse(base64.decode(body));
 		let msgInfo = {
-			sender_uid:msg.data.from,
+			sender_uid: msg.data.from,
 			sender_nick: msg.data.ext.nick,
 			sender_avatar: msg.data.ext.avatar,
-			msg:msg,
-			content:msg.data.body.content,
+			msgData: msg,
+			content: msg.data.body.content||msg.data.body.remotePath,
 			time: dayjs(time).valueOf(),
 			type: type,
+			msgType: msg.data.msgType     //2001文字消息，2002图片消息
 		};
 		let other_jid;
 		if(msg.data.from==user.userId){
@@ -146,7 +147,7 @@ function saveMsg(msg){
 			let thisMsg = VM.messageJson[other_jid].msgs;
 			let status = false;
 			for(let i=0; i<thisMsg.length; i++){
-				let msgId = thisMsg[i].msg.data.msgId;
+				let msgId = thisMsg[i].msgData.data.msgId;
 				let newMsgId = msg.data.msgId;
 				if(msgId==newMsgId){
 					status=true;
@@ -195,11 +196,24 @@ function receipt(id){
 	connection.send(msg.tree());
 }
 
-
-
-function sendMsg(msgObj,inputBox){
+function sendMsg(msgObj,msgType,sendContent){
+	let fileId;
 	let msgId = guid();
 	let time = new Date();
+	let body;
+	if(msgType==2001){
+		body = {
+			content:sendContent.value
+		}
+	}else if(msgType==2002){
+		console.log(sendContent)
+		fileId = sendContent.id
+		body = {
+			fileName:sendContent.name,
+			remotePath:sendContent.imgsrc,
+			size: ''
+		}
+	}
 	let data = {
 		data:{
 			ext:{
@@ -207,13 +221,11 @@ function sendMsg(msgObj,inputBox){
 				avatar:VM.user.avatar,
 				userId:VM.user.userId,
 			},
-			msgType:2001,
+			msgType:msgType,
 			msgId:msgId,
 			from:msgObj.from,
 			to:msgObj.to,
-			body:{
-				content:inputBox.value
-			},
+			body:body,
 			chatType:VM.activeMessageViewType=='chat'?1:2
 		},
 		type:2000
@@ -237,7 +249,6 @@ function sendMsg(msgObj,inputBox){
 			stamp:time,
 			from:'app.im',
 		},'')
-		console.log(msg)
 	}else if(VM.activeMessageViewType=='groupchat'){
 		msg = $msg({
 			to:msgObj.to+'@muc.app.im',
@@ -251,17 +262,19 @@ function sendMsg(msgObj,inputBox){
 			stamp:time,
 			from:'app.im',
 		},'')
-		console.log(msg)
 	}
 	
 	if(connected){
-		// console.log(base64.decode(Strophe.getText(msg.tree().getElementsByTagName('body')[0])))
-		console.log(msg);
+		console.log(msg.tree());
+		let elems = msg.tree().getElementsByTagName('body');
+		let body = Strophe.getText(elems[0]);
+		let cont = JSON.parse(base64.decode(body));
+		console.log(cont)
 		connection.send(msg.tree());
 		if(VM.tabActive!=1){
 			VM.tabActive=1
 		}
-		inputBox.value = ''
+		sendContent.value = ''
 		saveMsg(msg.tree())
 	}else{
 		alert('与聊天服务器断开连接……')

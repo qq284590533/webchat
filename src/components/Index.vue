@@ -183,7 +183,11 @@
 			<div class="windows_body">
 				<div class="office_text message_view" style="height: 100%;">
 					<ul ref="officeText"  class="content" id="chatbox">
-						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in activeMessageList" :key="index"><img :src="message.sender_avatar=='false'||message.sender_avatar==''?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick"><span>{{message.content}}</span></li>
+						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in activeMessageList" :key="index">
+							<img :src="message.sender_avatar=='false'||message.sender_avatar==''?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick">
+							<span v-if="message.msgType==2001">{{message.content}}</span>
+							<span class="img_box" v-else-if="message.msgType==2002"><img :src="message.content" alt=""></span>
+						</li>
 					</ul>
 				</div>
 			</div>
@@ -198,7 +202,7 @@
 				</div>
 				<div class="input_box">
 					<textarea ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
-					<button id="send" @click="sendMsg">发送（S）</button>
+					<button id="send" @click="sendMsg(2001)">发送（S）</button>
 				</div>
 			</div>
 		</div>
@@ -272,7 +276,6 @@ export default {
 			if(this.activeMessageViewType=='groupchat'){
 				if(this.groupJson[newval]){
 					this.activeObject=this.groupJson[newval];
-					console.log(this.groupJson[newval])
 					this.activeObject.nick = this.groupJson[newval].name;
 				}
 			}else if(this.activeMessageViewType=='chat'){
@@ -287,18 +290,19 @@ export default {
 		judge(oMsg){
 			let suid,avatar,nick;
 			if(oMsg.type=='groupchat'){
-				suid = oMsg.msg.msg.data.to
-				if(this.groupJson[suid]){
-					if(this.groupJson[suid].imgurlde==''||this.groupJson[suid].imgurlde=='false'){
+				suid = oMsg.msg.msgData.data.to
+				let thisGroupJson = this.groupJson[suid]
+				if(thisGroupJson){
+					if(!thisGroupJson.imgurlde||thisGroupJson.imgurlde=='false'){
 						avatar = '/static/images/contact.png';
 					}else{
-						avatar = this.groupJson[suid].imgurlde;
+						avatar = thisGroupJson.imgurlde;
 					}
-					nick = this.groupJson[suid].name;
+					nick = thisGroupJson.name;
 				}
 			}else if(oMsg.type=='chat'){
 				if(oMsg.msg.sender_uid==this.user.userId){
-					suid = oMsg.msg.msg.data.to;
+					suid = oMsg.msg.msgData.data.to;
 					if(this.friendsJson[suid].avatar==''||this.friendsJson[suid].avatar=='false'){
 						avatar = '/static/images/contact.png';
 					}else{
@@ -323,8 +327,9 @@ export default {
 				avatar:avatar,
 				nick:nick,
 				time:oMsg.msg.time,
-				content:oMsg.msg.content,
-				type:oMsg.type
+				content: oMsg.msg.msgType==2002?"[图片]":oMsg.msg.content,
+				type:oMsg.type,
+				msgType: oMsg.msg.msgType
 			}
 			return data
 		},
@@ -339,11 +344,11 @@ export default {
 				_this.$refs.officeText.scrollTop = _this.$refs.officeText.scrollHeight;
 			},0)
 		},
-		sendMsg(){
+		sendMsg(msgType,imgFile){
 			let tojid = this.activeMessageView;
 			let jid = this.user.userId;
 			let msg = this.$refs.inputBox.value;
-			if(msg.length == 0){
+			if(msgType==2001&&msg.length == 0){
 				alert('不能发送空消息');
 				return false;
 			}
@@ -352,17 +357,20 @@ export default {
 				from:jid,
 				type:'chat',
 			}
-			strophe.sendMsg(msgObj,this.$refs.inputBox);
+			if(msgType==2001){
+				strophe.sendMsg(msgObj,msgType,this.$refs.inputBox);
+			}else if(msgType==2002){
+				strophe.sendMsg(msgObj,msgType,imgFile);
+			}
 		}
 	},
     async created(){
 		strophe.setVM(this);
 		this.user = readLocal('user');
-		let uid = this.user.userId;
 		if(!this.user){
-			this.$router.push({name:'login'})
+			this.$router.replace({name:'login'});
 		}
-
+		let uid = this.user.userId;
 		let userInfo = {
 			userId: uid,
 			imPassword:this.user.imPassword
@@ -416,15 +424,14 @@ export default {
 			let talkList = this.talkList[0];
 			if(talkList.type=='chat'){
 				if(talkList.msg.sender_uid==this.user.userId){
-					this.activeMessageView = talkList.msg.msg.data.to;
+					this.activeMessageView = talkList.msg.msgData.data.to;
 				}else{
 					this.activeMessageView = talkList.msg.sender_uid
 				}
 			}else if(talkList.type=='groupchat'){
-				this.activeMessageView = talkList.msg.msg.data.to
+				this.activeMessageView = talkList.msg.msgData.data.to
 			}
 			this.activeMessageViewType = talkList.type;
-			console.log(this.activeMessageViewType)
 		}
 	},
 	mounted(){
@@ -492,6 +499,10 @@ export default {
 		white-space nowrap
 .office_text
 	overflow-y auto
+	.img_box
+		max-width 48%
+		img 
+			width 100%
 .message_view
 	display flex
 	flex-flow column
