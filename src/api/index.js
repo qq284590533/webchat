@@ -43,6 +43,8 @@ export function getGroupList(params) {
 		dataType: "jsonp",
 		data:  JSON.stringify(params),
 		headers:{
+			'Access-Control-Allow-Methods':"POST",
+			'Access-Control-Allow-Origin': '*',
 			'Content-Type':'application/json',
 			'Authorization': 'Basic YWRtaW5AYXBwLmltOjEyMzQ1NkBhcHA=',
 			'None-AES': '1'

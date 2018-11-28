@@ -253,6 +253,7 @@ export default {
 	},
 	filters:{
 		formatDate(val){
+			if(!dayjs(val).isValid()) return;
 			let now = dayjs()
 			let n_m = now.month();
 			let n_d = now.date();
