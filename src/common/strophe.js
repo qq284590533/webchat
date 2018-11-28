@@ -63,10 +63,6 @@ function onConnect(status) {
 			console.log(status)
 			console.log('已断开连接')
 			connected = false;
-			// loginIm({
-			// 	userId: VM.user.userId,
-			// 	imPassword:VM.user.imPassword
-			// })
 			break;
 		case Strophe.Status.CONNECTED:
 			console.log('已连接')
@@ -86,16 +82,18 @@ function onConnect(status) {
  * @returns {boolean}
  */
 function onMessage(msg) {
-	console.log('来新消息了！');
 	console.log(msg)
 	let elems = msg.getElementsByTagName('body');
-	let body = Strophe.getText(elems[0]);
-	let cont = JSON.parse(base64.decode(body));
-	console.log(cont)
-	console.log('---------------------');
-	//消息回执
-	receipt(msg.getAttribute('id'))
-	saveMsg(msg);
+	if(elems.length){
+		console.log('来新消息了！');
+		let body = Strophe.getText(elems[0]);
+		let cont = JSON.parse(base64.decode(body));
+		console.log(cont)
+		console.log('---------------------');
+		//消息回执
+		receipt(msg.getAttribute('id'))
+		saveMsg(msg);
+	}
 	return true;
 }
 
@@ -207,10 +205,10 @@ function sendMsg(msgObj,msgType,sendContent){
 		}
 	}else if(msgType==2002){
 		console.log(sendContent)
-		fileId = sendContent.id
+		// fileId = sendContent.id
 		body = {
-			fileName:sendContent.name,
-			remotePath:sendContent.imgsrc,
+			fileName:sendContent.fileName,
+			remotePath:sendContent.remotePath,
 			size: ''
 		}
 	}
@@ -231,7 +229,7 @@ function sendMsg(msgObj,msgType,sendContent){
 		type:2000
 	};
 	let bodyContent =  base64.encode(JSON.stringify(data))
-
+	console.log(data)
 	//构建消息体
 	let msg;
 	if(VM.activeMessageViewType=='chat'){
@@ -265,6 +263,7 @@ function sendMsg(msgObj,msgType,sendContent){
 	}
 	
 	if(connected){
+		saveMsg(msg.tree())
 		console.log(msg.tree());
 		let elems = msg.tree().getElementsByTagName('body');
 		let body = Strophe.getText(elems[0]);
@@ -273,9 +272,11 @@ function sendMsg(msgObj,msgType,sendContent){
 		connection.send(msg.tree());
 		if(VM.tabActive!=1){
 			VM.tabActive=1
+			VM.activeMessageList = VM.messageJson[VM.activeMessageView].msgs;
 		}
-		sendContent.value = ''
-		saveMsg(msg.tree())
+		if(msgType==2001){
+			sendContent.value = ''
+		}
 	}else{
 		alert('与聊天服务器断开连接……')
 	}

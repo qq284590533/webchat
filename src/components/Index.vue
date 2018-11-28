@@ -65,12 +65,14 @@
 			<div class="office_text">
 				<ul class="user_list" id="talk_list">
 					<li :class="{'user_active':judge(msg).active}" v-for="(msg,index) in talkList" :key="index" @click="changeObject(judge(msg).uid,judge(msg).type)">
-						<div class="user_head"><img :src="judge(msg).avatar"/></div>
-						<div class="user_text">
-							<p class="user_name">{{ judge(msg).nick }}</p>
-							<p class="user_message">{{ judge(msg).content }}</p>
+						<div>
+							<div class="user_head"><img :src="judge(msg).avatar"/></div>
+							<div class="user_text">
+								<p class="user_name">{{ judge(msg).nick }}</p>
+								<p class="user_message">{{ judge(msg).content }}</p>
+							</div>
+							<div class="user_time">{{ judge(msg).time | formatDate }}</div>
 						</div>
-						<div class="user_time">{{ judge(msg).time | formatDate }}</div>
 					</li>
 				</ul>
 			</div>	
@@ -185,8 +187,8 @@
 					<ul ref="officeText"  class="content" id="chatbox">
 						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in activeMessageList" :key="index">
 							<img :src="message.sender_avatar=='false'||message.sender_avatar==''?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick">
-							<span v-if="message.msgType==2001">{{message.content}}</span>
-							<span class="img_box" v-else-if="message.msgType==2002"><img :src="message.content" alt=""></span>
+							<span class="content_box" v-if="message.msgType==2001">{{message.content}}</span>
+							<span class="img_box content_box" v-else-if="message.msgType==2002"><img :src="message.content" alt=""></span>
 						</li>
 					</ul>
 				</div>
@@ -194,11 +196,9 @@
 			
 			<div class="windows_input" id="talkbox">
 				<div class="input_icon">
-					<!-- <a href="javascript:;"></a> -->
-					<div ref="container" id="container">
-						<button ref="addImg" id="addImg" class="btn">111</button>
+					<div ref="container" class="icon-item" id="container">
+						<button ref="addImg" id="addImg" class="btn"></button>
 					</div>
-					<!-- <a href="javascript:;"><input onchange="FirstImg()" name="firstImg" style="opacity:0;position:absolute" type="file" id="FirstfileImg" multiple=""></a> -->
 				</div>
 				<div class="input_box">
 					<textarea ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
@@ -345,6 +345,11 @@ export default {
 			},0)
 		},
 		sendMsg(msgType,imgFile){
+			if(!this.activeMessageView) {
+				alert('请先选择聊天对象');
+				return false
+			}
+
 			let tojid = this.activeMessageView;
 			let jid = this.user.userId;
 			let msg = this.$refs.inputBox.value;
@@ -499,8 +504,13 @@ export default {
 		white-space nowrap
 .office_text
 	overflow-y auto
+	.content_box
+		word-wrap: break-word; 
+		word-break: normal; 
+		font-size 14px;
+		line-height 18px
 	.img_box
-		max-width 48%
+		max-width 80%
 		img 
 			width 100%
 .message_view
@@ -522,5 +532,15 @@ export default {
 		font-size 12px
 		padding 12px
 		color #999999
+.input_icon
+	line-height 42px
+.icon-item
+	display inline-block
+#addImg
+	width 30px
+	height 30px
+	border none
+	background url(/static/images/icon/icon14.png) no-repeat center;
+	&:hover
+		background url(/static/images/icon/icon14_1.png) no-repeat center;
 </style>
-
