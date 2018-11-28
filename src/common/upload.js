@@ -30,10 +30,10 @@ function creatUploader(vm){
 		},
 		init: {
 			PostInit: function () { //上传初始化的操作函数
-				console.log('上传模块初始化')
+				// console.log('上传模块初始化')
 			},
 			FilesAdded: function (up, files) {
-                console.log('添加图片')
+                // console.log('添加图片')
                 if(!VM.activeMessageView){
                     console.log('请先选择聊天对象')
                     alert('请先选择聊天对象');
@@ -44,15 +44,15 @@ function creatUploader(vm){
                 }
 			},
 			BeforeUpload: function (up, file) {
-				console.log('开始上传图片')
+				// console.log('开始上传图片')
 				set_upload_param(up, file.name);
 				return;
 			},
 			UploadProgress: function (up, file) {
-				console.log('上传图片中……')
+				// console.log('上传图片中……')
 			},
 			FileUploaded: function (up, file, info) {
-				console.log('图片上传完成！')
+				// console.log('图片上传完成！')
 				set_upload_sucesse(file.name)
 				up.refresh();
 			},

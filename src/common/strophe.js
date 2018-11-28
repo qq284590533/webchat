@@ -47,20 +47,25 @@ function loginIm(param) {
 }
 
 
+function logOutIm(reason) {
+	connection.disconnect(reason);
+	console.log('登出聊天服务器！');
+	window.localStorage.removeItem("user");
+	VM.$router.replace({name:'login'});
+}
+
 function onConnect(status) {
 	switch(status){
 		case Strophe.Status.CONNECTING:
 			console.log('正在连接')
 			break;
 		case Strophe.Status.CONNFAIL:
-			console.log(status)
 			console.log('连接失败')
 			break;
 			case Strophe.Status.DISCONNECTING:
 			console.log('正在断开连接')
 			break;
 		case Strophe.Status.DISCONNECTED:
-			console.log(status)
 			console.log('已断开连接')
 			connected = false;
 			break;
@@ -82,14 +87,14 @@ function onConnect(status) {
  * @returns {boolean}
  */
 function onMessage(msg) {
-	console.log(msg)
+	// console.log(msg)
 	let elems = msg.getElementsByTagName('body');
 	if(elems.length){
 		console.log('来新消息了！');
 		let body = Strophe.getText(elems[0]);
 		let cont = JSON.parse(base64.decode(body));
-		console.log(cont)
-		console.log('---------------------');
+		// console.log(cont)
+		// console.log('---------------------');
 		//消息回执
 		receipt(msg.getAttribute('id'))
 		saveMsg(msg);
@@ -204,8 +209,7 @@ function sendMsg(msgObj,msgType,sendContent){
 			content:sendContent.value
 		}
 	}else if(msgType==2002){
-		console.log(sendContent)
-		// fileId = sendContent.id
+		// console.log(sendContent)
 		body = {
 			fileName:sendContent.fileName,
 			remotePath:sendContent.remotePath,
@@ -229,7 +233,7 @@ function sendMsg(msgObj,msgType,sendContent){
 		type:2000
 	};
 	let bodyContent =  base64.encode(JSON.stringify(data))
-	console.log(data)
+	// console.log(data)
 	//构建消息体
 	let msg;
 	if(VM.activeMessageViewType=='chat'){
@@ -264,11 +268,11 @@ function sendMsg(msgObj,msgType,sendContent){
 	
 	if(connected){
 		saveMsg(msg.tree())
-		console.log(msg.tree());
-		let elems = msg.tree().getElementsByTagName('body');
-		let body = Strophe.getText(elems[0]);
-		let cont = JSON.parse(base64.decode(body));
-		console.log(cont)
+		// console.log(msg.tree());
+		// let elems = msg.tree().getElementsByTagName('body');
+		// let body = Strophe.getText(elems[0]);
+		// let cont = JSON.parse(base64.decode(body));
+		// console.log(cont)
 		connection.send(msg.tree());
 		if(VM.tabActive!=1){
 			VM.tabActive=1
@@ -296,5 +300,6 @@ export {
 	loginIm,
 	connection,
 	onMessage,
-	sendMsg
+	sendMsg,
+	logOutIm
 }

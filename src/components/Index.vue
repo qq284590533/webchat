@@ -28,6 +28,7 @@
 				<a id="si_1" :class="{on:tabActive==1}" @click="tabActive=1"></a>
 				<a id="si_2" :class="{on:tabActive==2}" @click="tabActive=2"></a>
 				<!-- <a id="si_3" :class="{on:tabActive==3}" @click="tabActive=3"></a> -->
+				<a class="logout" @click="logOutIm"></a>
 			</div>
 			
 			<!--底部扩展键-->
@@ -201,7 +202,7 @@
 					</div>
 				</div>
 				<div class="input_box">
-					<textarea ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
+					<textarea  ref="inputBox" contentEditable="true" name="" rows="" cols="" id="input_box" ></textarea>
 					<button id="send" @click="sendMsg(2001)">发送（S）</button>
 				</div>
 			</div>
@@ -344,16 +345,28 @@ export default {
 				_this.$refs.officeText.scrollTop = _this.$refs.officeText.scrollHeight;
 			},0)
 		},
+		checkEnter(e) {
+			var et = e || window.event;
+			var keycode = et.charCode || et.keyCode;
+			if (keycode == 13) {
+				if (window.event) {
+					window.event.returnValue = false;
+				} else {
+					e.preventDefault(); //for firefox
+				}
+				this.sendMsg(2001)
+			}
+		},
 		sendMsg(msgType,imgFile){
 			if(!this.activeMessageView) {
 				alert('请先选择聊天对象');
 				return false
 			}
-
 			let tojid = this.activeMessageView;
 			let jid = this.user.userId;
 			let msg = this.$refs.inputBox.value;
-			if(msgType==2001&&msg.length == 0){
+			let msg_copy = msg;
+			if(msgType==2001&&msg.replace(/^\s+|\s+$/g,"").length == 0){
 				alert('不能发送空消息');
 				return false;
 			}
@@ -367,6 +380,9 @@ export default {
 			}else if(msgType==2002){
 				strophe.sendMsg(msgObj,msgType,imgFile);
 			}
+		},
+		logOutIm(){
+			strophe.logOutIm('主动登出')
 		}
 	},
     async created(){
@@ -438,6 +454,10 @@ export default {
 			}
 			this.activeMessageViewType = talkList.type;
 		}
+		let _this = this;
+		this.$refs.inputBox.addEventListener('keydown',function(e){
+			_this.checkEnter(e);
+		})
 	},
 	mounted(){
 		creatUploader(this);
@@ -543,4 +563,11 @@ export default {
 	background url(/static/images/icon/icon14.png) no-repeat center;
 	&:hover
 		background url(/static/images/icon/icon14_1.png) no-repeat center;
+.logout
+	position absolute
+	bottom 0
+	left 0
+	background url(/static/images/logout.png) no-repeat center
+	&:hover
+		background url(/static/images/logout_1.png) no-repeat center
 </style>
