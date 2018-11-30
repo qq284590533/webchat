@@ -12,7 +12,7 @@
 							<p class="own_name">{{user.nick}}<img src="/static/images/icon/head.png" alt="" /></p>
 							<p class="own_numb">微信号：{{user.tel}}</p>
 						</div>
-						<img :src="user.avatar" alt="" />
+						<img :src="user.avatar=='false'||user.avatar==''?'/static/images/contact.png':user.avatar" alt="" />
 					</div>
 					<div class="own_head_bottom">
 						<p><span>地区</span>江西 九江</p>
@@ -87,7 +87,7 @@
 			</div>
 			<div class="office_text">
 				<ul class="friends_list">
-					<div class="grouping">
+					<!-- <div class="grouping">
 						<p class="grouping-title">新的朋友</p>
 						<li class="friends-item">
 							<div class="item-box">
@@ -95,10 +95,10 @@
 								<p class="user_name">新的朋友</p>
 							</div>
 						</li>
-					</div>
+					</div> -->
 
 					<div class="grouping" v-show="groupList.length">
-						<p class="grouping-title">群聊</p>
+						<p class="grouping-title">群聊列表</p>
 						<li class="friends-item" v-for="(group, index) in groupList" :key="index" @click="changeObject(group.gid,'groupchat')">
 							<div class="item-box">
 								<img :src="group.imgurlde||'/static/images/contact.png'" alt="">
@@ -107,7 +107,7 @@
 						</li>
 					</div>
 					<div class="grouping">
-						<!-- <p class="grouping-title">群聊</p> -->
+						<p class="grouping-title">好友列表</p>
 						<li class="friends-item" v-for="(friend, index) in friendsList" :key="index" @click="changeObject(friend.userId,'chat')">
 							<div class="item-box">
 								<img :src="friend.avatar=='false'||friend.avatar==''?'/static/images/contact.png':friend.avatar" alt="">
