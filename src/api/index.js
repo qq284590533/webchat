@@ -37,8 +37,8 @@ export function getFriendsList(params) {
 //获取群列表
 export function getGroupList(params) {
 	return ajax({
-		url: 'http://api.yichatsystem.com/api/System/getmygroup',
-		// url: '/api/System/getmygroup',
+		// url: 'http://api.yichatsystem.com/api/System/getmygroup',
+		url: '/api/System/getmygroup',
 		method: 'post',
 		dataType: "jsonp",
 		data: params,
