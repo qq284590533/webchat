@@ -16,7 +16,11 @@ function ajax(options) {
 			if (xhr.readyState == 4) {
 				var status = xhr.status;
 				if (status >= 200 && status < 300) {
-					resolve(JSON.parse(xhr.responseText))
+					if(xhr.responseText){
+						resolve(JSON.parse(xhr.responseText))
+					}else{
+						resolve('null')
+					}
 				} else {
 					reject(status)
 				}

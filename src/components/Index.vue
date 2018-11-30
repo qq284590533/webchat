@@ -401,15 +401,17 @@ export default {
 
 		//获取群列表
 		let groupData = await API.getGroupList({
-			command: {
-				node: "group-get",
-				fields: [{
-					var: "uid",
-					value: this.user.userId
-				}]
-			}
+			jsonStr:JSON.stringify({
+				command: {
+					node: "group-get",
+					fields: [{
+						var: "uid",
+						value: this.user.userId
+					}]
+				}
+			}) 
 		});
-		groupData.command.fields.forEach(item=>{
+		groupData.data.fields.forEach(item=>{
 			let groupId = item.gid
 			item.isGroup = true;
 			this.groupJson[groupId] = item;

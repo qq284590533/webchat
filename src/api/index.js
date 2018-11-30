@@ -37,15 +37,10 @@ export function getFriendsList(params) {
 //获取群列表
 export function getGroupList(params) {
 	return ajax({
-		// url: 'http://106.14.241.187:19080/rest/adhoc/muc@muc.app.im',
-		url: '/rest/adhoc/muc@muc.app.im',
+		url: 'http://api.yichatsystem.com/api/System/getmygroup',
+		// url: '/api/System/getmygroup',
 		method: 'post',
 		dataType: "jsonp",
-		data:  JSON.stringify(params),
-		headers:{
-			'Content-Type':'application/json',
-			'Authorization': 'Basic YWRtaW5AYXBwLmltOjEyMzQ1NkBhcHA=',
-			'None-AES': '1'
-		}
+		data: params,
 	})
 }
