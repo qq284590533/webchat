@@ -4,7 +4,7 @@
 			<div class="am-dropdown" data-am-dropdown>
 				<!--头像插件-->
 				<div class="own_head am-dropdown-toggle">
-                    <img :src="user.avatar" alt="" />
+                    <img :src="user.avatar=='false'||user.avatar==''?'/static/images/contact.png':user.avatar" alt="" />
                 </div>
 				<div class="am-dropdown-content">
 					<div class="own_head_top">

@@ -1,3 +1,6 @@
+// let basicURL = "http://api.yichatsystem.com"
+let basicURL = ""
+
 function ajax(options) {
 	return new Promise((resolve, reject)=>{
 		options = options || {};
@@ -34,7 +37,7 @@ function ajax(options) {
 			xhr.send(null);
 		} else if (options.method == "POST") {
 			let params;
-			xhr.open("POST", options.url, true);
+			xhr.open("POST", basicURL+options.url, true);
 			if(options.headers){
 				for (let key in options.headers){
 					xhr.setRequestHeader(key, options.headers[key]);
