@@ -10,16 +10,16 @@
 					<div class="own_head_top">
 						<div class="own_head_top_text">
 							<p class="own_name">{{user.nick}}<img src="/static/images/icon/head.png" alt="" /></p>
-							<p class="own_numb">微信号：{{user.tel}}</p>
+							<p class="own_numb">手机号：{{user.tel}}</p>
 						</div>
 						<img :src="user.avatar=='false'||user.avatar==''?'/static/images/contact.png':user.avatar" alt="" />
 					</div>
 					<div class="own_head_bottom">
 						<p><span>地区</span>江西 九江</p>
-						<div class="own_head_bottom_img">
+						<!-- <div class="own_head_bottom_img">
 							<a href=""><img src="/static/images/icon/head_1.png"/></a>
 							<a href=""><img src="/static/images/icon/head_2.png"/></a>
-						</div>
+						</div> -->
 					</div>
 				</div>
 			</div>
@@ -101,7 +101,7 @@
 						<p class="grouping-title">群聊列表</p>
 						<li class="friends-item" v-for="(group, index) in groupList" :key="index" @click="changeObject(group.gid,'groupchat')">
 							<div class="item-box">
-								<img :src="group.imgurlde||'/static/images/contact.png'" alt="">
+								<img :src="group.imgurlde=='avatar'||group.imgurlde==null?'/static/images/contact.png':group.imgurlde" alt="">
 								<p>{{group.name}}</p>
 							</div>
 						</li>
