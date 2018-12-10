@@ -2,7 +2,7 @@
 	<div class="login">
 		<div class="llogo"><img src="/static/images/llogo.png"></div>
 		<div class="login-box">
-			<p>
+			<!-- <p>
 				<label for="userName">账号</label>
 				<input id="userName" v-model="username" type="text" placeholder="请输入账号">
 			</p>
@@ -10,7 +10,7 @@
 				<label for="passWord">密码</label>
 				<input id="passWord" v-model="password" type="password" placeholder="请输入密码">
 			</p>
-			<button @click="loginHandle">登录</button>
+			<button @click="loginHandle">登录</button> -->
 			<div ref="qrcodeBox" class="qrcode-box"></div>
 			<p class="sub_title">使用手机微信扫码登录</p>
 			<p class="sub_desc">网页版微信需要配合手机使用</p>	
