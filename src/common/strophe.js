@@ -36,6 +36,7 @@ function exChangeJid(uid) {
 };
 
 function loginIm(param) {
+	console.log(param)
 	let userId = param.userId;
 	jid = exChangeJid(userId);
 	let imPassword = param.imPassword
@@ -68,10 +69,10 @@ function onConnect(status) {
 		case Strophe.Status.DISCONNECTED:
 			console.log('已断开连接')
 			connected = false;
-			if(!VM.isLogout){
+			if(!VM.isLogOut){
 				loginIm({
 					userId: VM.user.userId,
-					imPassword:VM.user.imPassword
+					imPassword:VM.user.hxpassword
 				})
 			}
 			break;

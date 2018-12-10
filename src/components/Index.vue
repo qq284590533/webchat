@@ -398,9 +398,11 @@ export default {
 		let uid = this.user.userId;
 		let userInfo = {
 			userId: uid,
-			imPassword:this.user.imPassword
+			imPassword: this.user.hxpassword
+			// imPassword:this.user.imPassword
 		}
 
+		console.log(userInfo)
 		//登录聊天服务器
 		strophe.loginIm(userInfo);
 
