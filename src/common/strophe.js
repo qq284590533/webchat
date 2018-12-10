@@ -68,6 +68,12 @@ function onConnect(status) {
 		case Strophe.Status.DISCONNECTED:
 			console.log('已断开连接')
 			connected = false;
+			if(!VM.isLogout){
+				loginIm({
+					userId: VM.user.userId,
+					imPassword:VM.user.imPassword
+				})
+			}
 			break;
 		case Strophe.Status.CONNECTED:
 			console.log('已连接')
@@ -168,19 +174,24 @@ function saveMsg(msg){
 				type: VM.messageJson[key].type,
 				msg:VM.messageJson[key].msgs[0]
 			}
-			// VM.talkListJson[key] = VM.messageJson[key][0];
 		}
 		for(let key in VM.talkListJson){
 			talkList.push(VM.talkListJson[key])
 		}
 		VM.talkList = talkList;
+		console.log(VM.talkList)
 		VM.talkList.sort((a,b)=>{
-			let timeA = a.msg.time
-			let timeB = b.msg.time
-			return timeB-timeA
+			console.log(a);
+			if(a){
+				let timeA = a.msg.time
+				let timeB = b.msg.time
+				return timeB-timeA
+			}else{
+				return 0
+			}
 		})
 		saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
-		saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkList)
+		saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkListJson)
 		setTimeout(function(){
 			VM.$refs.officeText.scrollTop = VM.$refs.officeText.scrollHeight;
 		},0)

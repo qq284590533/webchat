@@ -248,7 +248,8 @@ export default {
 			activeMessageView:'',
 			activeMessageViewType:'',
 			activeMessageJson:{},
-			activeObject:{}
+			activeObject:{},
+			isLogOut:false,
         }
 	},
 	filters:{
@@ -383,10 +384,12 @@ export default {
 			}
 		},
 		logOutIm(){
+			this.isLogOut = true;
 			strophe.logOutIm('主动登出')
 		}
 	},
     async created(){
+		let _this = this;
 		strophe.setVM(this);
 		this.user = readLocal('user');
 		if(!this.user){
@@ -438,12 +441,35 @@ export default {
 		for (let item in this.groupJson){
 			this.groupList.push(this.groupJson[item])
 		}
-
+		let activeTime = new Date().getTime();
 		this.friendsJson = readLocal('FRIENDS_LIST_'+uid)||{};
 		this.messageJson = readLocal('MESSAGE_JSON_'+uid)||{};
+
+		for(let key in this.messageJson){
+			var msgItem = this.messageJson[key];
+			let msgSList = []
+			msgItem.msgs.forEach(function(item,index){
+				if(activeTime-item.time<(24*60*60*1000)){
+					msgSList.push(item)
+				}
+			})
+			if(msgSList.length==0){
+				delete this.messageJson[key]
+			}
+		}
 		this.talkList = readLocal('TALK_LIST_'+uid)||[];
+
+		var copyTalkList = []
+		this.talkList.forEach(function(item,index){
+			if(activeTime-item.msg.time<(24*60*60*1000)){
+				copyTalkList.push(item)
+			}
+		})
+
+		this.talkList = copyTalkList;
+
 		this.talkListJson = readLocal('TALK_LIST_JSON'+uid)||{};
-		this.talkListKey = readLocal('TALK_LIST_KEY_'+uid)||[];
+
 		if(this.talkList.length){
 			let talkList = this.talkList[0];
 			if(talkList.type=='chat'){
@@ -457,7 +483,6 @@ export default {
 			}
 			this.activeMessageViewType = talkList.type;
 		}
-		let _this = this;
 		this.$refs.inputBox.addEventListener('keydown',function(e){
 			_this.checkEnter(e);
 		})
