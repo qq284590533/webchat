@@ -36,7 +36,6 @@ function exChangeJid(uid) {
 };
 
 function loginIm(param) {
-	console.log(param)
 	let userId = param.userId;
 	jid = exChangeJid(userId);
 	let imPassword = param.imPassword
@@ -51,8 +50,13 @@ function loginIm(param) {
 function logOutIm(reason) {
 	connection.disconnect(reason);
 	console.log('登出聊天服务器！');
-	window.localStorage.removeItem("user");
-	VM.$router.replace({name:'login'});
+	if(VM.multi){
+		window.localStorage.removeItem("user_"+VM.user.userId);
+		VM.$router.replace({name:'login',query:{multi:true}});
+	}else{
+		window.localStorage.removeItem("user");
+		VM.$router.replace({name:'login'});
+	}
 }
 
 function onConnect(status) {
@@ -180,9 +184,9 @@ function saveMsg(msg){
 			talkList.push(VM.talkListJson[key])
 		}
 		VM.talkList = talkList;
-		console.log(VM.talkList)
+		// console.log(VM.talkList)
 		VM.talkList.sort((a,b)=>{
-			console.log(a);
+			// console.log(a);
 			if(a){
 				let timeA = a.msg.time
 				let timeB = b.msg.time

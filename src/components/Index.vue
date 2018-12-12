@@ -250,6 +250,7 @@ export default {
 			activeMessageJson:{},
 			activeObject:{},
 			isLogOut:false,
+			multi:false,
         }
 	},
 	filters:{
@@ -391,7 +392,14 @@ export default {
     async created(){
 		let _this = this;
 		strophe.setVM(this);
-		this.user = readLocal('user');
+		let routeParams = this.$route.params;
+		if(routeParams&&routeParams.userId){
+			this.user = readLocal('user_'+routeParams.userId);
+			this.multi = true
+		}else{
+			this.multi = false
+			this.user = readLocal('user');
+		}
 		if(!this.user){
 			this.$router.replace({name:'login'});
 		}
@@ -402,7 +410,6 @@ export default {
 			// imPassword:this.user.imPassword
 		}
 
-		console.log(userInfo)
 		//登录聊天服务器
 		strophe.loginIm(userInfo);
 

@@ -6,15 +6,20 @@ const index = r => require.ensure([], () => r(require('@/components/Index')), 'i
 Vue.use(Router)
 
 export default new Router({
-	routes: [{
-			path: '/',
-			name: 'login',
-			component: login
-	  },
-	  {
-			path: '/index',
-			name: 'index',
-			component: index,
-	  }
-	]
+  routes: [{
+      path: '/',
+      name: 'login',
+      component: login
+    },
+    {
+      path: '/index',
+      name: 'index',
+      component: index,
+    },
+    {
+      path: '/index/:userId',
+      name: 'indexWithId',
+      component: index,
+    }
+  ]
 })

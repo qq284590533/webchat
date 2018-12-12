@@ -42,7 +42,8 @@ export default {
 			username:'',
 			password:'',
 			URL:'http://api.yichatsystem.com/api/web/webLogin?qruuid=',
-			qruid:''
+			qruid:'',
+			multi:false,
 		}
 	},
 	methods:{
@@ -54,7 +55,13 @@ export default {
 			}
 			let data = await login(params)
 			if(data.code==1){
-				saveLocal('user',data.user)
+				let user = data.user
+				if(this.multi){
+					saveLocal('user_'+user.userId,data.user)
+					this.$router.push({name:'indexWithId',params: { userId: user.userId }})
+				}else{
+					saveLocal('user',user)
+				}
 				this.$router.push({name:'index'})
 			}else{
 				alert('登录失败！')
@@ -62,7 +69,7 @@ export default {
 		},
 		async getQruuid(){
 			let result = await getQruuid();
-			console.log(result)
+			// console.log(result)
 			if(result.code==1){
 				$(this.$refs.qrcodeBox).qrcode(this.URL + result.data);
 				this.qruid = result.data;
@@ -74,12 +81,19 @@ export default {
 				'qruuid': this.qruid
 			}
 			let result = await checkQruuid(params);
-				console.log(params)
+				// console.log(params)
 			if (result.code == 1) {
-				saveLocal('user',result.data);
 				$(".sub_title").html("扫码成功，进行跳转.....");
+				let user = result.data
+				// console.log(user)
 				clearInterval(interval);
-				this.$router.push({name:'index'})
+				if(this.multi){
+					saveLocal('user_'+user.userId,user)
+					this.$router.push({name:'indexWithId',params: { userId: user.userId }})
+				}else{
+					saveLocal('user',user)
+					this.$router.push({name:'index'})
+				}
 			}else if(result.code == 300){
 				alert('无此后台用户！');
 				window.clearInterval(interval);
@@ -87,8 +101,22 @@ export default {
 			}
 		},
 	},
+	beforeRouteEnter (to, from, next) {
+		next(vm => {
+			if(to.query&&to.query.multi){
+				vm.multi = true;
+			}else{
+				vm.multi = false;
+			}
+		})
+	},
 	mounted(){
 		this.getQruuid()
+		if(this.$route.query&&this.$route.query.multi=='true'){
+			this.multi = true;
+		}else{
+			this.multi = false;
+		}
 	},
 	beforeDestroy(){
 		clearInterval(interval)
