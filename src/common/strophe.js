@@ -76,7 +76,7 @@ function onConnect(status) {
 			if(!VM.isLogOut){
 				loginIm({
 					userId: VM.user.userId,
-					imPassword:VM.user.hxpassword
+					imPassword:VM.user.imPassword
 				})
 			}
 			break;

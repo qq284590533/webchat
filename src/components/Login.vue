@@ -1,19 +1,25 @@
 <template>
 	<div class="login">
 		<div class="llogo"><img src="/static/images/llogo.png"></div>
+		<span v-if="!loginWithId" class="loginWithId" @click="loginWithId=true">账号登录</span>
+		<span v-else class="loginWithId" @click="loginWithId=false">二维码登录</span>
 		<div class="login-box">
-			<!-- <p>
-				<label for="userName">账号</label>
-				<input id="userName" v-model="username" type="text" placeholder="请输入账号">
-			</p>
-			<p>
-				<label for="passWord">密码</label>
-				<input id="passWord" v-model="password" type="password" placeholder="请输入密码">
-			</p>
-			<button @click="loginHandle">登录</button> -->
-			<div ref="qrcodeBox" class="qrcode-box"></div>
-			<p class="sub_title">使用手机微信扫码登录</p>
-			<p class="sub_desc">网页版微信需要配合手机使用</p>	
+			<div v-if="loginWithId" class="id-login-box">
+				<p>
+					<label for="userName">账号：</label>
+					<input id="userName" v-model="username" type="text" placeholder="请输入账号">
+				</p>
+				<p>
+					<label for="passWord">密码：</label>
+					<input id="passWord" v-model="password" type="password" placeholder="请输入密码">
+				</p>
+				<button @click="loginHandle">登录</button>
+			</div>
+			<div v-else class="qrcode-login-box">
+				<div ref="qrcodeBox" class="qrcode-box"></div>
+				<p class="sub_title">使用手机版扫码登录</p>
+				<p class="sub_desc">网页版需要配合手机使用</p>	
+			</div>
 		</div>
 		<div class="lang">
 			<a>微信PC版</a>
@@ -44,7 +50,17 @@ export default {
 			URL:'http://api.yichatsystem.com/api/web/webLogin?qruuid=',
 			qruid:'',
 			multi:false,
+			loginWithId:false
 		}
+	},
+	watch:{
+		loginWithId(newval,oldval){
+			if(!newval){
+				this.getQruuid();
+			}else{
+				clearInterval(interval);
+			}
+		}	
 	},
 	methods:{
 		async loginHandle(){
@@ -57,12 +73,12 @@ export default {
 			if(data.code==1){
 				let user = data.user
 				if(this.multi){
-					saveLocal('user_'+user.userId,data.user)
+					saveLocal('user_'+user.userId,user)
 					this.$router.push({name:'indexWithId',params: { userId: user.userId }})
 				}else{
 					saveLocal('user',user)
+					this.$router.push({name:'index'})
 				}
-				this.$router.push({name:'index'})
 			}else{
 				alert('登录失败！')
 			}
@@ -172,8 +188,6 @@ export default {
 			border-radius 4px
 			padding 42px 55px
 			box-sizing border-box
-			width 380px 
-			height 540px
 			.qrcode-box
 				width 270px
 				height 270px
@@ -186,20 +200,33 @@ export default {
 				color #353535
 				margin-bottom 23px
 				margin-top 20px
-			// p
-			// 	margin-bottom 10px
-			// input
-			// 	border 1px solid #ddd
-			// 	border-radius 4px
-			// 	padding 4px 5px
-			// button
-			// 	border none
-			// 	background #4c8bff
-			// 	color #ffffff
-			// 	width 100%
-			// 	line-height 30px
-			// 	text-align center
-			// 	margin-top 10px
-			// 	border-radius 3px
+		.loginWithId
+			position absolute
+			right 60px
+			top 60px
+			font-size: 12px;
+			color: #f3f3f3;
+			cursor: pointer;
+		.id-login-box
+			p
+				font-size 16px
+				color #666
+				line-height 40px
+				margin-bottom 10px
+				input 
+					border 1px solid #ddd
+					padding 4px 10px
+					border-radius 4px
+			button 
+				width 100%
+				border none
+				border-radius 4px
+				background #3c8eea
+				height 40px
+				font-size 16px
+				color #fff
+				margin-top 20px
+				&:hover
+					background #227fe8
 </style>
 

@@ -1,5 +1,5 @@
-let basicURL = "http://api.yichatsystem.com"
-// let basicURL = ""
+// let basicURL = "http://api.yichatsystem.com"
+let basicURL = ""
 
 function ajax(options) {
 	return new Promise((resolve, reject)=>{
