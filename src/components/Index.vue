@@ -30,7 +30,7 @@
 				<!-- <a id="si_3" :class="{on:tabActive==3}" @click="tabActive=3"></a> -->
 				<a class="logout" @click="logOutIm"></a>
 			</div>
-			
+
 			<!--底部扩展键-->
 			<div id="doc-dropdown-justify-js">
 				<div class="am-dropdown" id="doc-dropdown-js" style="position: initial;">
@@ -49,14 +49,14 @@
 							  </div>
 							</div>
 						</li>
-						
+
 						<li><a href="#">备份与恢复</a></li>
 						<li><a href="#">设置</a></li>
 					</ul>
-				</div>	
-			</div>	
+				</div>
+			</div>
 		</div>
-		
+
 		<!--聊天列表-->
 		<div v-show="tabActive==1" class="middle">
 			<div class="wx_search">
@@ -76,9 +76,9 @@
 						</div>
 					</li>
 				</ul>
-			</div>	
+			</div>
 		</div>
-		
+
 		<!--好友列表-->
 		<div v-show="tabActive==2" class="middle">
 			<div class="wx_search">
@@ -116,9 +116,9 @@
 						</li>
 					</div>
 				</ul>
-			</div>	
+			</div>
 		</div>
-		
+
 		<!--程序列表-->
 		<div  v-show="tabActive==3" class="middle">
 			<div class="wx_search">
@@ -156,9 +156,9 @@
 						<span>标签</span>
 					</li>
 				</ul>
-			</div>	
+			</div>
 		</div>
-	
+
 		<!--聊天窗口-->
 		<div class="talk_window">
 			<div class="windows_top">
@@ -181,7 +181,7 @@
 					</div>
 				</div>
 			</div>
-			
+
 			<!--聊天内容-->
 			<div class="windows_body">
 				<div class="office_text message_view" style="height: 100%;">
@@ -194,7 +194,7 @@
 					</ul>
 				</div>
 			</div>
-			
+
 			<div class="windows_input" id="talkbox">
 				<div class="input_icon">
 					<div ref="container" class="icon-item" id="container">
@@ -322,7 +322,7 @@ export default {
 					}
 					nick = oMsg.msg.sender_nick;
 				}
-			}			
+			}
 
 			let active = suid==this.activeMessageView
 			let data = {
@@ -437,9 +437,9 @@ export default {
 						value: this.user.userId
 					}]
 				}
-			}) 
+			})
 		});
-		groupData.data.fields.forEach(item=>{
+		groupData.data.command.fields.forEach(item=>{
 			let groupId = item.gid
 			item.isGroup = true;
 			this.groupJson[groupId] = item;
@@ -546,7 +546,7 @@ export default {
 	padding 12px
 	overflow hidden
 	cursor pointer
-	img 
+	img
 		width 40px
 		height 40px
 	p
@@ -561,13 +561,13 @@ export default {
 .office_text
 	overflow-y auto
 	.content_box
-		word-wrap: break-word; 
-		word-break: normal; 
+		word-wrap: break-word;
+		word-break: normal;
 		font-size 14px;
 		line-height 18px
 	.img_box
 		max-width 80%
-		img 
+		img
 			width 100%
 .message_view
 	display flex

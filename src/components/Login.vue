@@ -18,7 +18,7 @@
 			<div v-else class="qrcode-login-box">
 				<div ref="qrcodeBox" class="qrcode-box"></div>
 				<p class="sub_title">使用手机版扫码登录</p>
-				<p class="sub_desc">网页版需要配合手机使用</p>	
+				<p class="sub_desc">网页版需要配合手机使用</p>
 			</div>
 		</div>
 		<div class="lang">
@@ -47,7 +47,7 @@ export default {
 		return {
 			username:'',
 			password:'',
-			URL:'http://api.yichatsystem.com/api/web/webLogin?qruuid=',
+			URL:'http://39.108.179.211/web/api/webLogin?qruuid=',
 			qruid:'',
 			multi:false,
 			loginWithId:false
@@ -60,7 +60,7 @@ export default {
 			}else{
 				clearInterval(interval);
 			}
-		}	
+		}
 	},
 	methods:{
 		async loginHandle(){
@@ -155,16 +155,16 @@ export default {
 			color: #a3a3a3;
 			font-size: 15px;
 			line-height: 1.8;
-		.lang 
+		.lang
 			position: absolute;
 			bottom: 60px;
 			left: 60px;
-			a 
+			a
 				text-decoration: none;
 				font-size: 12px;
 				color: #d3d3d3;
 				cursor: pointer;
-			.sep 
+			.sep
 				display: inline-block;
 				height: 12px;
 				vertical-align: middle;
@@ -180,7 +180,7 @@ export default {
 			position absolute
 			left 60px
 			top 60px
-			img 
+			img
 				width 36px
 				height 28px
 		.login-box
@@ -191,7 +191,7 @@ export default {
 			.qrcode-box
 				width 270px
 				height 270px
-				canvas 
+				canvas
 					width 100%
 					height 100%
 			.sub_title
@@ -213,11 +213,11 @@ export default {
 				color #666
 				line-height 40px
 				margin-bottom 10px
-				input 
+				input
 					border 1px solid #ddd
 					padding 4px 10px
 					border-radius 4px
-			button 
+			button
 				width 100%
 				border none
 				border-radius 4px

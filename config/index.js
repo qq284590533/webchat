@@ -11,18 +11,11 @@ module.exports = {
 		assetsSubDirectory: 'static',
 		assetsPublicPath: '/',
 		proxyTable: {
-			"/api": {
-				target: "http://api.yichatsystem.com/api/",
+			"/web": {
+				target: "http://39.108.179.211/web/",
 				changeOrigin: true,
 				pathRewrite:{
-					'^/api': '/'
-				}
-			},
-			"/rest": {
-				target: "http://106.14.241.187:19080/rest/",
-				changeOrigin: true,
-				pathRewrite:{
-					'^/rest': '/'
+					'^/web': '/'
 				}
 			}
 		},

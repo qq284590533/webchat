@@ -1,4 +1,4 @@
-let basicURL = "http://api.yichatsystem.com"
+let basicURL = "http://39.108.179.211"
 // let basicURL = ""
 
 function ajax(options) {
@@ -13,7 +13,7 @@ function ajax(options) {
 		} else { //IE6及其以下版本浏览器
 			var xhr = new ActiveXObject('Microsoft.XMLHTTP');
 		}
-	
+
 		//接收 - 第三步
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState == 4) {
@@ -29,7 +29,7 @@ function ajax(options) {
 				}
 			}
 		}
-	
+
 		//连接 和 发送 - 第二步
 		if (options.method == "GET") {
 			let params = formatParams(options.data);

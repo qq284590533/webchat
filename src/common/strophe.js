@@ -4,7 +4,7 @@ import Base64 from './base64'
 import { readLocal, saveLocal } from './utils'
 
 let Strophe = window.Strophe;
-let BOSH_SERVICE = 'http://106.14.241.187:5280/xmpp-httpbind';
+let BOSH_SERVICE = 'http://47.106.34.37:5280/xmpp-httpbind';
 let jid;
 let base64 = new Base64()
 let VM;
@@ -98,12 +98,11 @@ function onConnect(status) {
  * @returns {boolean}
  */
 function onMessage(msg) {
-	// console.log(msg)
+	console.log(msg)
 	let elems = msg.getElementsByTagName('body');
 	if(elems.length){
-		console.log('来新消息了！');
+    console.log('来新消息了！');
 		let body = Strophe.getText(elems[0]);
-		let cont = JSON.parse(base64.decode(body));
 		// console.log(cont)
 		// console.log('---------------------');
 		//消息回执
@@ -128,7 +127,8 @@ function saveMsg(msg){
 			// console.log(dayjs(time).valueOf())
 			// console.log(new Date(time).getTime())
 		}
-		let body = Strophe.getText(elems[0]);
+    let body = Strophe.getText(elems[0]);
+    console.log(base64.decode(body))
 		let msg = JSON.parse(base64.decode(body));
 		let msgInfo = {
 			sender_uid: msg.data.from,
@@ -145,7 +145,7 @@ function saveMsg(msg){
 			other_jid = msg.data.to
 		}else{
 			if(type=='chat'){
-				other_jid = msg.data.from	
+				other_jid = msg.data.from
 			}
 			if(type=='groupchat'){
 				other_jid = msg.data.to
@@ -281,7 +281,7 @@ function sendMsg(msgObj,msgType,sendContent){
 			from:'app.im',
 		},'')
 	}
-	
+
 	if(connected){
 		saveMsg(msg.tree())
 		// console.log(msg.tree());
