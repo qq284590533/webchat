@@ -60,8 +60,8 @@ function logOutIm(reason) {
 }
 
 function onConnect(status) {
-  console.log(status)
-  console.log(Strophe.Status)
+  // console.log(status)
+  // console.log(Strophe.Status)
 	switch(status){
 		case Strophe.Status.CONNECTING:
 			console.log('正在连接')
