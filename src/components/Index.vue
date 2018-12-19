@@ -4,7 +4,7 @@
 			<div class="am-dropdown" data-am-dropdown>
 				<!--头像插件-->
 				<div class="own_head am-dropdown-toggle">
-                    <img :src="user.avatar=='false'||user.avatar==''?'/static/images/contact.png':user.avatar" alt="" />
+                    <img :src="user.avatar=='false'||user.avatar==''||!user.avatar?'/static/images/contact.png':user.avatar" alt="" />
                 </div>
 				<div class="am-dropdown-content">
 					<div class="own_head_top">
@@ -12,7 +12,7 @@
 							<p class="own_name">{{user.nick}}<img src="/static/images/icon/head.png" alt="" /></p>
 							<p class="own_numb">手机号：{{user.tel}}</p>
 						</div>
-						<img :src="user.avatar=='false'||user.avatar==''?'/static/images/contact.png':user.avatar" alt="" />
+						<img :src="user.avatar=='false'||user.avatar==''||!user.avatar?'/static/images/contact.png':user.avatar" alt="" />
 					</div>
 					<div class="own_head_bottom">
 						<p><span>地区</span>江西 九江</p>
@@ -110,7 +110,7 @@
 						<p class="grouping-title">好友列表</p>
 						<li class="friends-item" v-for="(friend, index) in friendsList" :key="index" @click="changeObject(friend.userId,'chat')">
 							<div class="item-box">
-								<img :src="friend.avatar=='false'||friend.avatar==''?'/static/images/contact.png':friend.avatar" alt="">
+								<img :src="friend.avatar=='false'||friend.avatar==''||!friend.avatar?'/static/images/contact.png':friend.avatar" alt="">
 								<p>{{friend.nick}}</p>
 							</div>
 						</li>
@@ -187,7 +187,7 @@
 				<div class="office_text message_view" style="height: 100%;">
 					<ul ref="officeText"  class="content" id="chatbox">
 						<li :class="[message.sender_uid==user.userId?'me':'other']" v-for="(message,index) in activeMessageList" :key="index">
-							<img :src="message.sender_avatar=='false'||message.sender_avatar==''?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick">
+							<img :src="message.sender_avatar=='false'||message.sender_avatar==''||!message.sender_avatar?'/static/images/contact.png':message.sender_avatar" :title="message.sender_nick">
 							<span class="content_box" v-if="message.msgType==2001">{{message.content}}</span>
 							<span class="img_box content_box" v-else-if="message.msgType==2002"><img :src="message.content" alt=""></span>
 						</li>
@@ -307,7 +307,7 @@ export default {
 			}else if(oMsg.type=='chat'){
 				if(oMsg.msg.sender_uid==this.user.userId){
 					suid = oMsg.msg.msgData.data.to;
-					if(this.friendsJson[suid].avatar==''||this.friendsJson[suid].avatar=='false'){
+					if(this.friendsJson[suid].avatar==''||this.friendsJson[suid].avatar=='false'||!this.friendsJson[suid].avatar){
 						avatar = '/static/images/contact.png';
 					}else{
 						avatar = this.friendsJson[suid].avatar;
@@ -315,7 +315,7 @@ export default {
 					nick = this.friendsJson[suid].nick;
 				}else{
 					suid = oMsg.msg.sender_uid;
-					if(oMsg.msg.sender_avatar==''||oMsg.msg.sender_avatar=='false'){
+					if(oMsg.msg.sender_avatar==''||oMsg.msg.sender_avatar=='false'||!this.friendsJson[suid].avatar){
 						avatar = '/static/images/contact.png';
 					}else{
 						avatar = oMsg.msg.sender_avatar;

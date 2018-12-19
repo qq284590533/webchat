@@ -60,12 +60,14 @@ function logOutIm(reason) {
 }
 
 function onConnect(status) {
+  console.log(status)
+  console.log(Strophe.Status)
 	switch(status){
 		case Strophe.Status.CONNECTING:
 			console.log('正在连接')
 			break;
 		case Strophe.Status.CONNFAIL:
-			console.log('连接失败')
+      console.log('连接失败')
 			break;
 			case Strophe.Status.DISCONNECTING:
 			console.log('正在断开连接')
@@ -129,7 +131,13 @@ function saveMsg(msg){
 		}
     let body = Strophe.getText(elems[0]);
     console.log(base64.decode(body))
-		let msg = JSON.parse(base64.decode(body));
+    let msg;
+    try{
+      msg = JSON.parse(base64.decode(body));
+    }catch(err){
+      console.log(err);
+      return false;
+    }
 		let msgInfo = {
 			sender_uid: msg.data.from,
 			sender_nick: msg.data.ext.nick,
