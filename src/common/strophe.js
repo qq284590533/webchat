@@ -138,6 +138,7 @@ function saveMsg(msg){
       console.log(err);
       return false;
     }
+    if(msg.type!=2000) return;
 		let msgInfo = {
 			sender_uid: msg.data.from,
 			sender_nick: msg.data.ext.nick,
