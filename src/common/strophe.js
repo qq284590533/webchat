@@ -10,6 +10,7 @@ let base64 = new Base64()
 let VM;
 let connected = false;
 let connection;
+let reLogin = false;
 connection = new Strophe.Connection(BOSH_SERVICE);
 // connection = new Strophe.Connection(BOSH_SERVICE,{sync: false});
 connection.rawInput = rawInput;
@@ -25,10 +26,18 @@ function log(msg) {
 
 function rawInput(data) {
 	log('RECV: ' + data);
+	let html = document.createElement('html');
+	html.innerHTML = data;
+	let body = html.querySelector('body');
+	let condition = body.getAttribute('condition');
+	if(condition&&condition=="remote-stream-error"){
+		// alert("账号在其他地方登陆，您已被迫下线。")
+		reLogin = confirm("账号在其他地方登陆，您已被迫下线，是否重新连接？");
+	}
 }
 
 function rawOutput(data) {
-	log('SENT: ' + data);
+	// log('SENT: ' + data);
 }
 
 function exChangeJid(uid) {
@@ -45,7 +54,6 @@ function loginIm(param) {
 		onConnect
 	);
 }
-
 
 function logOutIm(reason) {
 	connection.disconnect(reason);
@@ -76,10 +84,15 @@ function onConnect(status) {
 			console.log('已断开连接')
 			connected = false;
 			if(!VM.isLogOut){
-				loginIm({
-					userId: VM.user.userId,
-					imPassword:VM.user.imPassword
-				})
+				if(reLogin){
+					loginIm({
+						userId: VM.user.userId,
+						imPassword:VM.user.imPassword
+					})
+				}else{
+					VM.isLogOut = true;
+					logOutIm('被迫下线');
+				}
 			}
 			break;
 		case Strophe.Status.CONNECTED:
@@ -104,7 +117,6 @@ function onMessage(msg) {
 	let elems = msg.getElementsByTagName('body');
 	if(elems.length){
     console.log('来新消息了！');
-		let body = Strophe.getText(elems[0]);
 		// console.log(cont)
 		// console.log('---------------------');
 		//消息回执
