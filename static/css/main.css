@@ -1,6 +1,6 @@
 
 body{
-	background-size: 100% 100%; 
+	background-size: 100% 100%;
 	height: 100vh;
 	-webkit-user-select:none;
     -moz-user-select:none;
@@ -21,7 +21,7 @@ body{
 
 
 ::-webkit-scrollbar-thumb {
-	background-color: rgba(0, 0, 0, 0.1); 
+	background-color: rgba(0, 0, 0, 0.1);
 	border-radius:10px;
 } /* 滑块颜色 */
 
@@ -203,10 +203,10 @@ ul li{
 
 ul.am-dropdown-content{
 	padding: 0;
-	bottom:10px; 
-	top: auto; 
+	bottom:10px;
+	top: auto;
 	left: 40px;
-	background:#393d40; 
+	background:#393d40;
 	width: auto;
 	border-radius: 0;
 }
@@ -382,7 +382,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
     width: 100%;
 	height:calc(100% - 62px);
     position: relative;
-    display: inline-block;	
+    display: inline-block;
 }
 
 .friends_list li > p{
@@ -502,6 +502,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 }
 
 .windows_body{
+  position: relative;
 	height: 473px;
 	width: 100%;
 }
@@ -641,10 +642,10 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 	float: right;
     width: 34px;
     height: 34px;
-    border-radius: 2px; 
+    border-radius: 2px;
 }
 
-.me span { 
+.me span {
     float: right;
     background: #9eea6a;
 }
@@ -685,10 +686,10 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 	float: right;
     width: 34px;
     height: 34px;
-    border-radius: 2px; 
+    border-radius: 2px;
 }
 
-.other span { 
+.other span {
     float: right;
     background: #9eea6a;
 }

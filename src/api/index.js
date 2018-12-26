@@ -57,3 +57,43 @@ export function getGroupList(params) {
 		data: params,
 	})
 }
+
+//上传聊天记录
+export function webUploadMessage(params) {
+	return ajax({
+		url: '/web/api/webUploadMessage',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+//获取群聊记录
+export function getMsgByTimestamp(params) {
+	return ajax({
+		url: '/web/api/getMsgByTimestamp',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+//撤回消息
+export function withdrawMessage(params) {
+	return ajax({
+		url: '/web/api/withdrawMessage',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+//撤回消息
+export function getmucMembers(params) {
+	return ajax({
+		url: '/web/api/getmucMembers',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}

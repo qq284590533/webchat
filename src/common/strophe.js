@@ -2,6 +2,7 @@ import 'strophe.js'
 import dayjs from 'dayjs'
 import Base64 from './base64'
 import { readLocal, saveLocal } from './utils'
+import * as API from '../api/index.js'
 
 let Strophe = window.Strophe;
 let BOSH_SERVICE = 'http://47.106.34.37:5280/xmpp-httpbind';
@@ -102,114 +103,133 @@ function onConnect(status) {
 function onMessage(msg) {
 	console.log(msg)
 	let elems = msg.getElementsByTagName('body');
+	let delay = msg.getElementsByTagName('delay');
+	let type = msg.getAttribute('type');
 	if(elems.length){
-    console.log('来新消息了！');
+    	console.log('来新消息了！');
 		let body = Strophe.getText(elems[0]);
-		// console.log(cont)
 		// console.log('---------------------');
-		//消息回执
+
+		//发送消息回执
 		receipt(msg.getAttribute('id'))
-		saveMsg(msg);
+
+		let msgBody;
+		let time;
+		if (type=='chat'||type=='groupchat'&elems.length > 0) {
+			if (delay.length > 0) {
+				time= delay[0].getAttribute('stamp')
+			}
+			let body = Strophe.getText(elems[0]);
+			try{
+				msgBody = JSON.parse(base64.decode(body));
+				console.log()
+				msgBody['time'] = dayjs(time).valueOf();
+				msgBody['chatType'] = type;
+			}catch(err){
+				console.log(err);
+				return false;
+			}
+		}
+		console.log(msgBody)
+		switch(parseInt(msgBody.type)){
+			case 1000:
+				console.log('有消息撤回了！')
+				break;
+			case 2000:
+				saveMsg(msgBody)
+				break;
+			case 4000:
+				console.log('群组被解散！')
+				break;
+			default:
+				break;
+		}
+
+		// saveMsg(msg);
 	}
 	return true;
 }
 
 function saveMsg(msg){
 	let user = VM.user
-	let type = msg.getAttribute('type');
-	let elems = msg.getElementsByTagName('body');
-	let delay = msg.getElementsByTagName('delay');
-	let time;
-	if (type=='chat'||type=='groupchat'&elems.length > 0) {
-		if (delay.length > 0) {
-			time= delay[0].getAttribute('stamp')
-			// console.log(time)
-			// console.log(dayjs(time))
-			// console.log(new Date())
-			// console.log(dayjs(time).valueOf())
-			// console.log(new Date(time).getTime())
+	let msgInfo = {
+		sender_uid: msg.data.from,
+		sender_nick: msg.data.ext.nick,
+		sender_avatar: msg.data.ext.avatar,
+		msgData: msg,
+		content: msg.data.body.content||msg.data.body.remotePath,
+		time: msg.time,
+		type: msg.chatType,
+		msgType: msg.data.msgType,     //2001文字消息，2002图片消息
+		msgId: msg.data.msgId
+	};
+	// console.log(msgInfo)
+
+	let other_jid;
+	if(msg.data.from==user.userId){
+		other_jid = msg.data.to
+	}else{
+		if(msgInfo.type=='chat'){
+			other_jid = msg.data.from
 		}
-    let body = Strophe.getText(elems[0]);
-    console.log(base64.decode(body))
-    let msg;
-    try{
-      msg = JSON.parse(base64.decode(body));
-    }catch(err){
-      console.log(err);
-      return false;
-    }
-    if(msg.type!=2000) return;
-		let msgInfo = {
-			sender_uid: msg.data.from,
-			sender_nick: msg.data.ext.nick,
-			sender_avatar: msg.data.ext.avatar,
-			msgData: msg,
-			content: msg.data.body.content||msg.data.body.remotePath,
-			time: dayjs(time).valueOf(),
-			type: type,
-			msgType: msg.data.msgType     //2001文字消息，2002图片消息
-		};
-		let other_jid;
-		if(msg.data.from==user.userId){
+		if(msgInfo.type=='groupchat'){
 			other_jid = msg.data.to
-		}else{
-			if(type=='chat'){
-				other_jid = msg.data.from
-			}
-			if(type=='groupchat'){
-				other_jid = msg.data.to
-			}
 		}
-		if(!VM.messageJson[other_jid]){
-			VM.messageJson[other_jid]={
-				type:type,
-				msgs:[]
-			}
-			VM.messageJson[other_jid].msgs.unshift(msgInfo)
-		}else{
-			let thisMsg = VM.messageJson[other_jid].msgs;
-			let status = false;
-			for(let i=0; i<thisMsg.length; i++){
-				let msgId = thisMsg[i].msgData.data.msgId;
-				let newMsgId = msg.data.msgId;
-				if(msgId==newMsgId){
-					status=true;
-					break;
-				}
-			}
-			if(!status){
-				VM.messageJson[other_jid].msgs.unshift(msgInfo);
-			}
-		}
-		saveLocal('MESSAGE_JSON_'+user.userId,VM.messageJson)
-		let talkList=[];
-		for(let key in VM.messageJson){
-			VM.talkListJson[key] = {
-				type: VM.messageJson[key].type,
-				msg:VM.messageJson[key].msgs[0]
-			}
-		}
-		for(let key in VM.talkListJson){
-			talkList.push(VM.talkListJson[key])
-		}
-		VM.talkList = talkList;
-		// console.log(VM.talkList)
-		VM.talkList.sort((a,b)=>{
-			// console.log(a);
-			if(a){
-				let timeA = a.msg.time
-				let timeB = b.msg.time
-				return timeB-timeA
-			}else{
-				return 0
-			}
-		})
-		saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
-		saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkListJson)
-		setTimeout(function(){
-			VM.$refs.officeText.scrollTop = VM.$refs.officeText.scrollHeight;
-		},0)
 	}
+
+	if(!VM.messageJson[other_jid]){
+		VM.messageJson[other_jid]={
+			type:msgInfo.type,
+			msgs:[]
+		}
+		VM.messageJson[other_jid].msgs.unshift(msgInfo)
+	}else{
+		let thisMsg = VM.messageJson[other_jid].msgs;
+		let status = false;
+		for(let i=0; i<thisMsg.length; i++){
+			let msgId = thisMsg[i].msgData.data.msgId;
+			let newMsgId = msg.data.msgId;
+			if(msgId==newMsgId){
+				status=true;
+				break;
+			}
+		}
+		if(!status){
+			VM.messageJson[other_jid].msgs.unshift(msgInfo);
+		}
+	}
+
+	saveLocal('MESSAGE_JSON_'+user.userId,VM.messageJson)
+	let talkList=[];
+
+	for(let key in VM.messageJson){
+		VM.talkListJson[key] = {
+			type: VM.messageJson[key].type,
+			msg:VM.messageJson[key].msgs[0]
+		}
+	}
+
+	for(let key in VM.talkListJson){
+		talkList.push(VM.talkListJson[key])
+	}
+	VM.talkList = talkList;
+	// console.log(VM.talkList)
+	VM.talkList.sort((a,b)=>{
+		// console.log(a);
+		if(a){
+			let timeA = a.msg.time
+			let timeB = b.msg.time
+			return timeB-timeA
+		}else{
+			return 0
+		}
+	})
+	saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
+	saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkListJson)
+
+	setTimeout(function(){
+		VM.$refs.officeText.scrollTop = VM.$refs.officeText.scrollHeight;
+	},0)
 }
 
 
@@ -292,7 +312,20 @@ function sendMsg(msgObj,msgType,sendContent){
 	}
 
 	if(connected){
-		saveMsg(msg.tree())
+		let msgBody = data;
+		msgBody['time'] = dayjs(time).valueOf()
+		msgBody['chatType'] = VM.activeMessageViewType;
+		console.log(msgBody)
+		saveMsg(msgBody)
+		//上传消息记录
+		let param = {
+			fromId:msgObj.from,
+			toId:msgObj.to,
+			chattype:VM.activeMessageViewType=='chat'?'1':'2',
+			message:bodyContent,
+			mid:VM.activeMessageViewType=='chat'?'':msgId,
+		}
+		uploadMessage(param);
 		// console.log(msg.tree());
 		// let elems = msg.tree().getElementsByTagName('body');
 		// let body = Strophe.getText(elems[0]);
@@ -311,6 +344,16 @@ function sendMsg(msgObj,msgType,sendContent){
 	}
 }
 
+let uploadMessage = async (param) =>{
+	try{
+		let res = await API.webUploadMessage(param);
+		console.log(res)
+	}
+	catch(error){
+		console.log(error)
+	}
+}
+
 //创建唯一表示 uuid
 function S4() {
 	return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
@@ -326,5 +369,6 @@ export {
 	connection,
 	onMessage,
 	sendMsg,
+	saveMsg,
 	logOutIm
 }
