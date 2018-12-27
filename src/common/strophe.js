@@ -122,15 +122,14 @@ function onMessage(msg) {
 			let body = Strophe.getText(elems[0]);
 			try{
 				msgBody = JSON.parse(base64.decode(body));
-				console.log()
 				msgBody['time'] = dayjs(time).valueOf();
-				msgBody['chatType'] = type;
+				// msgBody['chatType'] = type;
 			}catch(err){
 				console.log(err);
 				return false;
 			}
-		}
-		console.log(msgBody)
+    }
+    console.log(msgBody)
 		switch(parseInt(msgBody.type)){
 			case 1000:
 				console.log('有消息撤回了！')
@@ -151,51 +150,55 @@ function onMessage(msg) {
 }
 
 function saveMsg(msg){
+  console.log(msg)
+  // if(msg.type!=2000) return
 	let user = VM.user
-	let msgInfo = {
-		sender_uid: msg.data.from,
-		sender_nick: msg.data.ext.nick,
-		sender_avatar: msg.data.ext.avatar,
-		msgData: msg,
-		content: msg.data.body.content||msg.data.body.remotePath,
-		time: msg.time,
-		type: msg.chatType,
-		msgType: msg.data.msgType,     //2001文字消息，2002图片消息
-		msgId: msg.data.msgId
-	};
 	// console.log(msgInfo)
+
+  // if(msg.type==2000){
+  //   msgInfo = {
+  //     sender_uid: msg.data.from,
+  //     sender_nick: msg.data.ext.nick,
+  //     sender_avatar: msg.data.ext.avatar,
+  //     msgData: msg,
+  //     content: msg.data.body.content||msg.data.body.remotePath,
+  //     time: msg.time,
+  //     type: msg.chatType,
+  //     msgType: msg.data.msgType,     //2001文字消息，2002图片消息
+  //     msgId: msg.data.msgId
+  //   };
+  // }
 
 	let other_jid;
 	if(msg.data.from==user.userId){
 		other_jid = msg.data.to
 	}else{
-		if(msgInfo.type=='chat'){
+		if(msg.data.chatType=='1'){
 			other_jid = msg.data.from
 		}
-		if(msgInfo.type=='groupchat'){
+		if(msg.data.chatType=='2'){
 			other_jid = msg.data.to
 		}
 	}
 
 	if(!VM.messageJson[other_jid]){
-		VM.messageJson[other_jid]={
-			type:msgInfo.type,
-			msgs:[]
-		}
-		VM.messageJson[other_jid].msgs.unshift(msgInfo)
+		VM.messageJson[other_jid]=[]
+		VM.messageJson[other_jid].unshift(msg)
 	}else{
-		let thisMsg = VM.messageJson[other_jid].msgs;
+    let msgList = VM.messageJson[other_jid];
+    console.log('msgList:',msgList)
 		let status = false;
-		for(let i=0; i<thisMsg.length; i++){
-			let msgId = thisMsg[i].msgData.data.msgId;
+		for(let i=0; i<msgList.length; i++){
+			let msgId = msgList[i].data.msgId;
 			let newMsgId = msg.data.msgId;
 			if(msgId==newMsgId){
-				status=true;
+        status=true;
+        msgList[i] = msg
 				break;
 			}
 		}
 		if(!status){
-			VM.messageJson[other_jid].msgs.unshift(msgInfo);
+			VM.messageJson[other_jid].unshift(msg);
 		}
 	}
 
@@ -203,14 +206,13 @@ function saveMsg(msg){
 	let talkList=[];
 
 	for(let key in VM.messageJson){
-		VM.talkListJson[key] = {
-			type: VM.messageJson[key].type,
-			msg:VM.messageJson[key].msgs[0]
-		}
+		VM.talkListJson[key] = [
+			VM.messageJson[key][0]
+    ]
 	}
 
 	for(let key in VM.talkListJson){
-		talkList.push(VM.talkListJson[key])
+		talkList.push(VM.talkListJson[key][0])
 	}
 	VM.talkList = talkList;
 	// console.log(VM.talkList)
@@ -312,11 +314,8 @@ function sendMsg(msgObj,msgType,sendContent){
 	}
 
 	if(connected){
-		let msgBody = data;
-		msgBody['time'] = dayjs(time).valueOf()
-		msgBody['chatType'] = VM.activeMessageViewType;
-		console.log(msgBody)
-		saveMsg(msgBody)
+		console.log(data)
+		saveMsg(data)
 		//上传消息记录
 		let param = {
 			fromId:msgObj.from,
@@ -354,10 +353,121 @@ let uploadMessage = async (param) =>{
 	}
 }
 
+//撤回消息
+
+let withdrawMsg = async (msgItem) => {
+  let message;
+  let param;
+  let msgId = guid();
+  let time = new Date();
+
+  let body = {
+    isOwner:msgItem.type=='groupchat'&&VM.groupMembers[0].userId==VM.user.userId?'1':'0',
+    action:6000,
+    msgid:msgItem.msgId
+  }
+
+	let data_1 = {
+		data:{
+			msgId:msgId,
+			from:msgItem.msgData.data.from,
+			to:msgItem.msgData.data.to,
+			body:JSON.stringify(body),
+			chatType:msgItem.type=='chat'?1:2
+		},
+		type:1000
+  };
+  let nick;
+  let msgUid = msgItem.msgData.data.from;
+  let content;
+  if(msgItem.type=='groupchat'){
+    for(let i=0; i<VM.groupMembers.length; i++){
+      let item = VM.groupMembers[i];
+      if(item.userId==msgUid){
+        nick = item.nick;
+        break;
+      }
+    }
+    if(msgUid==VM.user.userId){
+      content = (body.isOwner==1?'群主':VM.user.nick)+' 撤回了一条信息'
+    }else{
+      content = (body.isOwner==1?'群主':'')+' 撤回了 '+nick+' 的一条信息'
+    }
+  }else{
+    content = VM.user.nick+' 撤回了一条信息'
+  }
+  console.log(content)
+  console.log('connection发送的消息体内的base64原数据：', data_1)
+
+  let bodyContent = base64.encode(JSON.stringify(data_1))
+
+  if(msgItem.type=='chat'){
+		message = $msg({
+			to:exChangeJid(msgItem.msgData.data.to),
+			from:exChangeJid(msgItem.msgData.data.from),
+			type:'chat',
+			id:msgId
+		})
+		.c("body",null,bodyContent)
+		.c('delay',{
+			urn:'urn:xmpp:delay',
+			stamp:time,
+		},'')
+	}else if(VM.activeMessageViewType=='groupchat'){
+		message = $msg({
+			to:msgItem.msgData.data.to+'@muc.app.im',
+			from:exChangeJid(msgItem.msgData.data.from),
+			type:'groupchat',
+			id:msgId
+		})
+		.c("body",null,bodyContent)
+		.c('delay',{
+			urn:'urn:xmpp:delay',
+			stamp:time,
+		},'')
+	}
+
+  msgItem.msgData.data.ext['action'] = 6001;
+  let msgData = {
+    data:{
+      ext:{
+        nick:msgItem.msgData.data.ext.nick,
+        avatar:msgItem.msgData.data.ext.avatar,
+        userId:msgItem.msgData.data.ext.userId,
+        action:6001
+      },
+      msgType:msgItem.msgData.data.msgType,
+      msgId:msgItem.msgData.data.msgId,
+      from:msgItem.msgData.data.from,
+      to:msgItem.msgData.data.to,
+      body:{
+        content:content
+      },
+      chatType:msgItem.msgData.data.chatType
+    },
+    type:msgItem.msgData.type
+  }
+  console.log('调用api接口传的数据base64原数据：',msgData)
+
+  param = {
+    mid:msgItem.msgId,
+    message:base64.encode(JSON.stringify(msgData))
+  }
+
+  let res = await API.withdrawMessage(param);
+
+  console.log(message.tree())
+  connection.send(message.tree());
+  console.log(res)
+}
+
+
+
 //创建唯一表示 uuid
 function S4() {
 	return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
 }
+
 function guid() {
 	return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
 }
@@ -370,5 +480,6 @@ export {
 	onMessage,
 	sendMsg,
 	saveMsg,
-	logOutIm
+  logOutIm,
+  withdrawMsg
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="wechat">
+  <div class="wechat" @click="showMenu=false">
     <div class="sidestrip">
       <div class="am-dropdown" data-am-dropdown>
         <!--头像插件-->
@@ -271,7 +271,7 @@
 
       <!--聊天内容-->
       <div v-if="activeBox=='chat'" class="chat-box">
-        <div class="windows_body" ref="windowsBody" @click="showMenu = false">
+        <div class="windows_body" ref="windowsBody">
           <div class="office_text message_view" style="height: 100%;">
             <ul ref="officeText" class="content" id="chatbox">
               <li
@@ -279,6 +279,10 @@
                 v-for="(message,index) in activeMessageList"
                 :key="index"
               >
+              <div v-if="message.msgType==6001">
+                <p>{{message.content}}</p>
+              </div>
+              <div v-else>
                 <img
                   :src="message.sender_avatar=='false'||message.sender_avatar==''||!message.sender_avatar?'/static/images/contact.png':message.sender_avatar"
                   :title="message.sender_nick"
@@ -287,6 +291,7 @@
                 <span class="img_box content_box" v-else-if="message.msgType==2002">
                   <img :src="message.content" alt>
                 </span>
+              </div>
               </li>
             </ul>
           </div>
@@ -433,9 +438,10 @@ export default {
   },
   methods: {
     judge(oMsg) {
+      console.log(oMsg)
       let suid, avatar, nick;
       if (oMsg.type == "groupchat") {
-        suid = oMsg.msg.msgData.data.to;
+        suid = oMsg.data.to;
         let thisGroupJson = this.groupJson[suid];
         if (thisGroupJson) {
           if (!thisGroupJson.imgurlde || thisGroupJson.imgurlde == "false") {
@@ -446,8 +452,8 @@ export default {
           nick = thisGroupJson.name;
         }
       } else if (oMsg.type == "chat") {
-        if (oMsg.msg.sender_uid == this.user.userId) {
-          suid = oMsg.msg.msgData.data.to;
+        if (oMsg.data.from == this.user.userId) {
+          suid = oMsg.data.to;
           if (
             this.friendsJson[suid].avatar == "" ||
             this.friendsJson[suid].avatar == "false" ||
@@ -459,19 +465,21 @@ export default {
           }
           nick = this.friendsJson[suid].nick;
         } else {
-          suid = oMsg.msg.sender_uid;
+          suid = oMsg.data.from;
           if (
-            oMsg.msg.sender_avatar == "" ||
-            oMsg.msg.sender_avatar == "false" ||
-            !this.friendsJson[suid].avatar
+            oMsg.data.ext.avatar == "" ||
+            oMsg.data.ext.avatar == "false" ||
+            !oMsg.data.ext.avatar
           ) {
             avatar = "/static/images/contact.png";
           } else {
-            avatar = oMsg.msg.sender_avatar;
+            avatar = oMsg.data.ext.avatar;
           }
-          nick = oMsg.msg.sender_nick;
+          nick = oMsg.data.ext.nick;
         }
       }
+
+      console.log(suid,avatar,nick)
 
       let active = suid == this.activeMessageView;
       let data = {
@@ -479,10 +487,10 @@ export default {
         uid: suid,
         avatar: avatar,
         nick: nick,
-        time: oMsg.msg.time,
-        content: oMsg.msg.msgType == 2002 ? "[图片]" : oMsg.msg.content,
+        time: oMsg.time,
+        content: oMsg.data&&oMsg.data.msgType == 2002 ? "[图片]" : oMsg.data.body.content,
         type: oMsg.type,
-        msgType: oMsg.msg.msgType
+        msgType: oMsg.data.msgType
       };
       return data;
 		},
@@ -518,13 +526,14 @@ export default {
 						}else{
 							return 0
 						}
-					})
+          })
 					msgList.forEach(msgItem=>{
-						// console.log(msgItem)
+            // console.log(msgItem)
 						let msg = JSON.parse(base64.decode(msgItem.message));
 						msg['time'] = parseInt(msgItem.timeStamp);
-						msg['chatType'] = 'groupchat';
+						// msg['chatType'] = 'groupchat';
 						// console.log(msg)
+            console.log(msg)
 						strophe.saveMsg(msg);
 					})
 				}catch(err){
@@ -596,7 +605,7 @@ export default {
 					this.contextmenu['3'].show = true;
 				}else{
 					this.contextmenu['3'].show = false;
-				}
+        }
 			}else{
 				if(msg.sender_uid==this.user.userId){
 					this.contextmenu['3'].show = true;
@@ -644,7 +653,7 @@ export default {
 
 		withdrawMsg(){
 			console.log('撤回消息');
-
+      strophe.withdrawMsg(this.msgItem)
 		},
 
 
@@ -718,7 +727,7 @@ export default {
     for (let key in this.messageJson) {
       var msgItem = this.messageJson[key];
       let msgSList = [];
-      msgItem.msgs.forEach(function(item, index) {
+      msgItem.forEach(function(item, index) {
         if (activeTime - item.time < 24 * 60 * 60 * 1000) {
           msgSList.push(item);
         }
@@ -731,7 +740,7 @@ export default {
 
     var copyTalkList = [];
     this.talkList.forEach(function(item, index) {
-      if (activeTime - item.msg.time < 24 * 60 * 60 * 1000) {
+      if (activeTime - item.time < 24 * 60 * 60 * 1000) {
         copyTalkList.push(item);
       }
     });

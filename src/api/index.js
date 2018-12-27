@@ -88,7 +88,7 @@ export function withdrawMessage(params) {
 	})
 }
 
-//撤回消息
+//获取群员
 export function getmucMembers(params) {
 	return ajax({
 		url: '/web/api/getmucMembers',

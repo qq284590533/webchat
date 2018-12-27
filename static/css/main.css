@@ -638,7 +638,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 	padding:10px 20px;
 }
 
-.me>img:nth-child(1){
+.me>div>img:nth-child(1){
 	float: right;
     width: 34px;
     height: 34px;
@@ -682,7 +682,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 }
 
 /*other*/
-.other>img{
+.other>div>img{
 	float: right;
     width: 34px;
     height: 34px;
@@ -704,7 +704,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
     float:left;
     margin-bottom:5px;
 }
-.other img {
+.other>div>img {
     float: left;
 }
 .other span{
