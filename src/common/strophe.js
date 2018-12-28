@@ -96,7 +96,7 @@ function onConnect(status) {
 
 
 /**
- * 接收信息回调
+ * 接收消息回调
  * @param msg
  * @returns {boolean}
  */
@@ -112,14 +112,13 @@ function onMessage(msg) {
 
 		//发送消息回执
 		receipt(msg.getAttribute('id'))
-
+    console.log(JSON.parse(base64.decode(body)))
 		let msgBody;
 		let time;
 		if (type=='chat'||type=='groupchat'&elems.length > 0) {
 			if (delay.length > 0) {
 				time= delay[0].getAttribute('stamp')
 			}
-			let body = Strophe.getText(elems[0]);
 			try{
 				msgBody = JSON.parse(base64.decode(body));
 				msgBody['time'] = dayjs(time).valueOf();
@@ -132,7 +131,8 @@ function onMessage(msg) {
     console.log(msgBody)
 		switch(parseInt(msgBody.type)){
 			case 1000:
-				console.log('有消息撤回了！')
+        console.log('有消息撤回了！')
+        changLocalMessage(msgBody);
 				break;
 			case 2000:
 				saveMsg(msgBody)
@@ -149,26 +149,59 @@ function onMessage(msg) {
 	return true;
 }
 
+function changLocalMessage(msg){
+  let msgData = msg.data;
+  let mgsBody = JSON.parse(msg.data.body);
+  let withdrawnMsg;
+  let content;
+  let nick;
+
+  if(msg.data.chatType=='2'){
+
+    for(let i=0; i<VM.groupMembers.length; i++){
+      let item = VM.groupMembers[i];
+      if(item.userId==msg.data.from){
+        nick = item.nick;
+        break;
+      }
+    }
+
+    if(mgsBody.isOwner==1){
+      if(msg.data.from==VM.groupMembers[0].userId){
+        content = '\"群主\" 撤回了一条消息'
+      }else{
+        content = '\"群主\" 撤回了 \"'+nick+'\" 的一条消息'
+      }
+    }else{
+      content = '\"'+nick+'\" 撤回了一条消息'
+    }
+    let thisMessages = VM.messageJson[msg.data.to];
+    for(let i=0; i<thisMessages.length; i++){
+      if(msg.data.from==thisMessages[i].data.from){
+        withdrawnMsg = thisMessages[i];
+        break;
+      }
+    }
+
+  }else{
+    console.log(VM.messageJson[msg.data.from]);
+    let thisMessages = VM.messageJson[msg.data.from];
+    for(let i=0; i<thisMessages.length; i++){
+      if(msg.data.from==thisMessages[i].data.from){
+        withdrawnMsg = thisMessages[i];
+        content = '\"'+withdrawnMsg.data.ext.nick+'\" 撤回了一条消息'
+        break;
+      }
+    }
+  };
+  withdrawnMsg.data.body['content'] = content;
+  withdrawnMsg.data.ext['action'] = 6001;
+  saveMsg(withdrawnMsg)
+}
+
 function saveMsg(msg){
-  console.log(msg)
-  // if(msg.type!=2000) return
+  // console.log(msg)
 	let user = VM.user
-	// console.log(msgInfo)
-
-  // if(msg.type==2000){
-  //   msgInfo = {
-  //     sender_uid: msg.data.from,
-  //     sender_nick: msg.data.ext.nick,
-  //     sender_avatar: msg.data.ext.avatar,
-  //     msgData: msg,
-  //     content: msg.data.body.content||msg.data.body.remotePath,
-  //     time: msg.time,
-  //     type: msg.chatType,
-  //     msgType: msg.data.msgType,     //2001文字消息，2002图片消息
-  //     msgId: msg.data.msgId
-  //   };
-  // }
-
 	let other_jid;
 	if(msg.data.from==user.userId){
 		other_jid = msg.data.to
@@ -186,7 +219,6 @@ function saveMsg(msg){
 		VM.messageJson[other_jid].unshift(msg)
 	}else{
     let msgList = VM.messageJson[other_jid];
-    console.log('msgList:',msgList)
 		let status = false;
 		for(let i=0; i<msgList.length; i++){
 			let msgId = msgList[i].data.msgId;
@@ -219,8 +251,8 @@ function saveMsg(msg){
 	VM.talkList.sort((a,b)=>{
 		// console.log(a);
 		if(a){
-			let timeA = a.msg.time
-			let timeB = b.msg.time
+			let timeA = a.time
+			let timeB = b.time
 			return timeB-timeA
 		}else{
 			return 0
@@ -247,7 +279,6 @@ function receipt(id){
 }
 
 function sendMsg(msgObj,msgType,sendContent){
-	let fileId;
 	let msgId = guid();
 	let time = new Date();
 	let body;
@@ -276,7 +307,8 @@ function sendMsg(msgObj,msgType,sendContent){
 			to:msgObj.to,
 			body:body,
 			chatType:VM.activeMessageViewType=='chat'?1:2
-		},
+    },
+    time: dayjs(time).valueOf(),
 		type:2000
 	};
 	let bodyContent =  base64.encode(JSON.stringify(data))
@@ -315,7 +347,8 @@ function sendMsg(msgObj,msgType,sendContent){
 
 	if(connected){
 		console.log(data)
-		saveMsg(data)
+    saveMsg(data)
+
 		//上传消息记录
 		let param = {
 			fromId:msgObj.from,
@@ -333,7 +366,7 @@ function sendMsg(msgObj,msgType,sendContent){
 		connection.send(msg.tree());
 		if(VM.tabActive!=1){
 			VM.tabActive=1
-			VM.activeMessageList = VM.messageJson[VM.activeMessageView].msgs;
+			VM.activeMessageList = VM.messageJson[VM.activeMessageView];
 		}
 		if(msgType==2001){
 			sendContent.value = ''
@@ -356,55 +389,40 @@ let uploadMessage = async (param) =>{
 //撤回消息
 
 let withdrawMsg = async (msgItem) => {
+  console.log(msgItem)
   let message;
   let param;
   let msgId = guid();
   let time = new Date();
 
   let body = {
-    isOwner:msgItem.type=='groupchat'&&VM.groupMembers[0].userId==VM.user.userId?'1':'0',
+    isOwner:msgItem.data.chatType=='2'&&VM.groupMembers[0].userId==VM.user.userId?'1':'0',
     action:6000,
-    msgid:msgItem.msgId
+    msgId:msgItem.data.msgId
   }
 
 	let data_1 = {
 		data:{
 			msgId:msgId,
-			from:msgItem.msgData.data.from,
-			to:msgItem.msgData.data.to,
+			from:msgItem.data.from,
+			to:msgItem.data.to,
 			body:JSON.stringify(body),
-			chatType:msgItem.type=='chat'?1:2
+			chatType:msgItem.data.chatType
 		},
 		type:1000
   };
   let nick;
-  let msgUid = msgItem.msgData.data.from;
+  let msgUid = msgItem.data.from;
   let content;
-  if(msgItem.type=='groupchat'){
-    for(let i=0; i<VM.groupMembers.length; i++){
-      let item = VM.groupMembers[i];
-      if(item.userId==msgUid){
-        nick = item.nick;
-        break;
-      }
-    }
-    if(msgUid==VM.user.userId){
-      content = (body.isOwner==1?'群主':VM.user.nick)+' 撤回了一条信息'
-    }else{
-      content = (body.isOwner==1?'群主':'')+' 撤回了 '+nick+' 的一条信息'
-    }
-  }else{
-    content = VM.user.nick+' 撤回了一条信息'
-  }
-  console.log(content)
+
   console.log('connection发送的消息体内的base64原数据：', data_1)
 
   let bodyContent = base64.encode(JSON.stringify(data_1))
 
-  if(msgItem.type=='chat'){
+  if(VM.activeMessageViewType=='chat'){
 		message = $msg({
-			to:exChangeJid(msgItem.msgData.data.to),
-			from:exChangeJid(msgItem.msgData.data.from),
+			to:exChangeJid(msgItem.data.to),
+			from:exChangeJid(msgItem.data.from),
 			type:'chat',
 			id:msgId
 		})
@@ -415,8 +433,8 @@ let withdrawMsg = async (msgItem) => {
 		},'')
 	}else if(VM.activeMessageViewType=='groupchat'){
 		message = $msg({
-			to:msgItem.msgData.data.to+'@muc.app.im',
-			from:exChangeJid(msgItem.msgData.data.from),
+			to:msgItem.data.to+'@muc.app.im',
+			from:exChangeJid(msgItem.data.from),
 			type:'groupchat',
 			id:msgId
 		})
@@ -427,38 +445,48 @@ let withdrawMsg = async (msgItem) => {
 		},'')
 	}
 
-  msgItem.msgData.data.ext['action'] = 6001;
-  let msgData = {
-    data:{
-      ext:{
-        nick:msgItem.msgData.data.ext.nick,
-        avatar:msgItem.msgData.data.ext.avatar,
-        userId:msgItem.msgData.data.ext.userId,
-        action:6001
-      },
-      msgType:msgItem.msgData.data.msgType,
-      msgId:msgItem.msgData.data.msgId,
-      from:msgItem.msgData.data.from,
-      to:msgItem.msgData.data.to,
-      body:{
-        content:content
-      },
-      chatType:msgItem.msgData.data.chatType
-    },
-    type:msgItem.msgData.type
+  if(msgItem.data.chatType=='2'){
+    for(let i=0; i<VM.groupMembers.length; i++){
+      let item = VM.groupMembers[i];
+      if(item.userId==msgUid){
+        nick = item.nick;
+        break;
+      }
+    }
+    if(msgUid==VM.user.userId){
+      content = (body.isOwner==1?'\"群主\"':VM.user.nick)+' 撤回了一条消息'
+    }else{
+      content = (body.isOwner==1?'\"群主\"':'')+' 撤回了 \"'+nick+'\" 的一条消息'
+    }
+  }else{
+    content = '\"'+VM.user.nick+'\" 撤回了一条消息'
   }
-  console.log('调用api接口传的数据base64原数据：',msgData)
+  console.log(content)
 
+  msgItem.data.body['content'] = content;
+  msgItem.data.ext['action'] = 6001;
+  console.log('调用api接口传的数据base64原数据：',msgItem)
+  let msgItemCopy = JSON.parse(JSON.stringify(msgItem));
+  delete msgItemCopy['time']
+  console.log('msgItemCopy:',msgItemCopy)
   param = {
-    mid:msgItem.msgId,
-    message:base64.encode(JSON.stringify(msgData))
+    mid:msgItem.data.msgId,
+    message:base64.encode(JSON.stringify(msgItemCopy))
+  }
+
+  if(msgItem.data.from==VM.user.userId){
+    msgItem.data.body['content'] = '你撤回了一条消息';
+  }else{
+    msgItem.data.body['content'] = '你撤回了 \"'+msgItem.data.ext.nick+'\" 一条消息';
   }
 
   let res = await API.withdrawMessage(param);
-
   console.log(message.tree())
   connection.send(message.tree());
   console.log(res)
+  if(res.res=="succ"){
+    saveMsg(msgItem)
+  }
 }
 
 
