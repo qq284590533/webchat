@@ -83,7 +83,7 @@
       <div v-show="tabActive==1" class="middle">
         <div class="wx_search">
           <input type="text" placeholder="搜索">
-          <button title="发起群聊">+</button>
+          <button title="发起群聊" @click="createGroup">+</button>
         </div>
         <div class="office_text">
           <ul class="user_list" id="talk_list">
@@ -112,7 +112,7 @@
       <div v-show="tabActive==2" class="middle">
         <div class="wx_search">
           <input type="text" placeholder="搜索">
-          <button title="发起群聊">+</button>
+          <button title="发起群聊" @click="createGroup">+</button>
         </div>
         <div class="office_text">
           <ul class="friends_list">
@@ -262,7 +262,14 @@
               <div class="am-offcanvas-bar am-offcanvas-bar-flip">
                 <div class="am-offcanvas-content">
                   <div class="info-box" v-if="activeMessageViewType=='groupchat'">
-                    本群详情
+                    <ul class="groupmembers-list">
+                      <li v-for="(item, index) in groupMembers" :key="index" :title="item.nick">
+                        <img :src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar" alt="">
+                        <p class="nick">{{item.nick}}</p>
+                      </li>
+                      <li><span class="add-member" title="添加组员" @click="addMember">+</span></li>
+                      <li><span class="delete-member" title="删除组员" @click="deleteMember">-</span></li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -326,7 +333,7 @@
       </div>
       </div>
     </div>
-    <selectList v-show="true"></selectList>
+    <selectList :isShow="showSelector" :listData="listData" @onensure="onensure" @oncancel="oncancel"></selectList>
   </div>
 </template>
 
@@ -387,8 +394,15 @@ export default {
 					show:false,
 					eventName:'撤回'
 				}
-			},
-			groupMembers:[],
+      },
+      showSelector:false,
+      groupMembers:[],
+      listData:[],
+      selectListType:0,  //1:创建群组选择联系人列表，2:转发选择联系人列表，3：删除群成员选择联系人列表
+      eventObj:{
+        prop:null,
+        handleFunc:()=>null,
+      }
     };
   },
   components:{
@@ -429,8 +443,26 @@ export default {
         this.activeMessageList = this.messageJson[newval].msgs;
       }
 			this.buildTalkView(newval);
+    },
+
+    selectListType(newval, oldval){
+      switch(newval){
+        case 1:
+          this.listData = this.getSelectFriendstList()
+          break;
+        case 2:
+          this.listData = this.getSelectContactList()
+          break;
+        case 3:
+          this.listData = this.getSelectGroupMemberstList()
+          break;
+        default:
+          this.listData = [];
+          break;
+      }
     }
   },
+
   methods: {
     judge(oMsg) {
       let suid, avatar, nick;
@@ -472,7 +504,6 @@ export default {
           nick = oMsg.data.ext.nick;
         }
       }
-
 
       let active = suid == this.activeMessageView;
       let data = {
@@ -523,14 +554,15 @@ export default {
 					msgList.forEach(msgItem=>{
 						let msg = JSON.parse(base64.decode(msgItem.message));
             msg['time'] = parseInt(msgItem.timeStamp);
-            if(msg.data.ext.action==6001){
-              if(msg.data.from==this.user.userId){
-                msg.data.body.content = '你撤回了一条消息'
-              }else if(this.groupMembers[0].userId==this.user.userId){
-                msg.data.body.content = '你撤回了 \"'+msg.data.ext.nick+'\" 的一条消息'
-              }
-            }
             console.log(msg)
+            // if(msg.data.ext.action==6001){
+            //   if(this.groupList[uid].creator==this.user.userId){
+            //     msg.data.body.content = '你撤回了一条消息'
+            //   }else if(this.groupMembers[0].userId==this.user.userId){
+            //     msg.data.body.content = '你撤回了 \"'+msg.data.ext.nick+'\" 的一条消息'
+            //   }
+            // }
+            // console.log(msg)
 						strophe.saveMsg(msg);
 					})
 				}catch(err){
@@ -631,6 +663,7 @@ export default {
 			this.msgItem = msg;
 		},
 
+    //点击邮件菜单事件分配方法
 		clickMenuEvent(menuItem){
 			switch(menuItem.eventType){
 				case 1:
@@ -645,6 +678,69 @@ export default {
 			}
     },
 
+    //创建群组
+    createGroup(){
+      //暂时未开放
+      // this.eventObj.handleFunc = this.createGroupHandle;
+      // this.initSelector(1)
+    },
+
+    //创建群组事件处理
+    createGroupHandle(list){
+      console.log(list)
+    },
+
+    getSelectContactList(){
+      let list = [];
+      this.friendsList.forEach(item=>{
+        let friendsItem = {
+          avatar:item.avatar==""||item.avatar=="false"||!item.avatar?"/static/images/contact.png":item.avatar,
+          nick:item.nick,
+          uid:item.userId,
+          type:'user'
+        }
+        list.push(friendsItem);
+      })
+      this.groupList.forEach(item=>{
+        let groupItem = {
+          avatar:item.imgurlde==""||item.imgurlde=="false"||!item.imgurlde?"/static/images/contact.png":item.imgurlde,
+          nick:item.name,
+          uid:item.gid,
+          type:'group'
+        }
+        list.push(groupItem);
+      })
+      console.log(list)
+      return list;
+    },
+
+    getSelectFriendstList(){
+      let list = [];
+      this.friendsList.forEach(item=>{
+        let friendsItem = {
+          avatar:item.avatar==""||item.avatar=="false"||!item.avatar?"/static/images/contact.png":item.avatar,
+          nick:item.nick,
+          uid:item.userId,
+        }
+        list.push(friendsItem);
+      })
+      console.log(list)
+      return list;
+    },
+    getSelectGroupMemberstList(){
+      let list = [];
+      this.groupMembers.forEach(item=>{
+        let memberItem = {
+          avatar:item.avatar==""||item.avatar=="false"||!item.avatar?"/static/images/contact.png":item.avatar,
+          nick:item.nick,
+          uid:item.userId,
+        }
+        list.push(memberItem);
+      })
+      console.log(list)
+      return list;
+    },
+    //复制消息方法
 		copyCont(){
       console.log('复制内容');
       let input = document.createElement('input');
@@ -655,16 +751,79 @@ export default {
       input.remove()
 		},
 
+    //转发消息事件设置
 		forwardMsg(){
-			console.log('转发消息');
+      console.log('转发消息');
+      this.initSelector(2)
+      this.eventObj.prop = this.msgItem;
+      this.eventObj.handleFunc = this.forwardMsgHandle;
 		},
 
+    //转发消息处理函数
+    forwardMsgHandle(msg,list){
+      console.log(list)
+      list.forEach(item=>{
+        let msgcopy = JSON.parse(JSON.stringify(msg))
+        let uid = item.uid;
+        let chatType = item.type=='user'?'chat':'groupchat';
+        strophe.forwardMsg(uid,msgcopy,chatType)
+      })
+    },
+
+    //撤回消息
 		withdrawMsg(){
 			console.log('撤回消息');
-      strophe.withdrawMsg(this.msgItem)
+      strophe.withdrawMsg(this.msgItem);
 		},
 
+    //初始化选择列表
+    initSelector(selectType){
+      this.selectListType = selectType;
+      this.showSelector = true;
+    },
 
+    //事件方法执行器
+    eventHandle(argument){
+      let prop = this.eventObj.prop;
+      let funcName = this.eventObj.handleFunc;
+      if(prop){
+        funcName(prop,argument);
+      }else{
+        funcName(argument);
+      }
+      this.eventObj = {
+        prop:null,
+        handleFunc:()=>null,
+      }
+    },
+
+    //选择列表确定按钮事件处理
+    onensure(list){
+      this.eventHandle(list);
+      this.showSelector = false;
+    },
+
+    oncancel(){
+      console.log('取消')
+      this.showSelector = false;
+    },
+
+    addMember(){
+      this.initSelector(1)
+      this.eventObj.handleFunc = this.addMemberHandle;
+    },
+
+    addMemberHandle(list){
+      console.log(list)
+    },
+
+    deleteMember(){
+      this.initSelector(3)
+      this.eventObj.handleFunc = this.deleteMemberHandle;
+    },
+    deleteMemberHandle(list){
+      console.log(list)
+    },
   },
   async created() {
     let _this = this;
@@ -990,5 +1149,45 @@ export default {
 		}
 	}
 }
+.am-offcanvas-content
+  .groupmembers-list
+    height 400px
+    overflow auto
+    display flex
+    flex-wrap wrap
+    align-items flex-start
+    align-content flex-start
+    li
+      width 60px
+      height 60px
+      display flex
+      text-align center
+      flex-flow wrap
+      justify-content center
+      margin-bottom 10px
+      img
+        display inline-block
+        width 40px;
+        height 40px;
+      p
+        width 100%
+        overflow hidden
+        text-overflow ellipsis
+        white-space nowrap
+        line-height 20px
+        font-size 12px
+        color #666
+      span
+        width 40px
+        height 40px
+        border 1px solid #bbb
+        cursor pointer
+        font-size 30px
+        line-height 32px
+        font-weight 100
+        color #bbb
+        &:hover
+          border-color #999
+          color #999
 
 </style>

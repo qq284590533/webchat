@@ -97,3 +97,62 @@ export function getmucMembers(params) {
 		data: params,
 	})
 }
+
+//添加群成员
+export function addMember(params) {
+	return ajax({
+		url: '/web/api/addgroupnum',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+//删除群成员
+export function deleteMember(params) {
+	return ajax({
+		url: '/web/api/delgroupnum',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+//删除群
+export function deleteGroup(params) {
+	return ajax({
+		url: '/web/api/delgroup',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+//添加好友
+export function addFriend(params) {
+	return ajax({
+		url: '/web/api/addfriend',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+
+//获取群信息
+export function getGroupInfo(params) {
+	return ajax({
+		url: '/web/api/getgroup',
+		method: 'post',
+		dataType: "jsonp",
+		data: params,
+	})
+}
+
+
+
+// web/api/getgroup 获取群信息
+
+// /web/api/addgroupnum 添加群成员  /web/api/delgroupnum 删除群成员   /web/api/delgroup删除群
+
+// /web/api/addfriend   参数 uid 自己的userid  userId  要添加的人的userid

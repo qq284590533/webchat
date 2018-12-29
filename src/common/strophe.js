@@ -132,6 +132,7 @@ function onMessage(msg) {
 		switch(parseInt(msgBody.type)){
 			case 1000:
         console.log('有消息撤回了！')
+
         changLocalMessage(msgBody);
 				break;
 			case 2000:
@@ -168,12 +169,12 @@ function changLocalMessage(msg){
 
     if(mgsBody.isOwner==1){
       if(msg.data.from==VM.groupMembers[0].userId){
-        content = '\"群主\" 撤回了一条消息'
+        content = '群主撤回了一条消息'
       }else{
-        content = '\"群主\" 撤回了 \"'+nick+'\" 的一条消息'
+        content = '群主撤回了'+nick+'的一条消息'
       }
     }else{
-      content = '\"'+nick+'\" 撤回了一条消息'
+      content = nick+'撤回了一条消息'
     }
     let thisMessages = VM.messageJson[msg.data.to];
     for(let i=0; i<thisMessages.length; i++){
@@ -189,7 +190,7 @@ function changLocalMessage(msg){
     for(let i=0; i<thisMessages.length; i++){
       if(msg.data.from==thisMessages[i].data.from){
         withdrawnMsg = thisMessages[i];
-        content = '\"'+withdrawnMsg.data.ext.nick+'\" 撤回了一条消息'
+        content = ''+withdrawnMsg.data.ext.nick+' 撤回了一条消息'
         break;
       }
     }
@@ -415,7 +416,7 @@ let withdrawMsg = async (msgItem) => {
   let msgUid = msgItem.data.from;
   let content;
 
-  console.log('connection发送的消息体内的base64原数据：', data_1)
+  // console.log('connection发送的消息体内的base64原数据：', data_1)
 
   let bodyContent = base64.encode(JSON.stringify(data_1))
 
@@ -454,21 +455,21 @@ let withdrawMsg = async (msgItem) => {
       }
     }
     if(msgUid==VM.user.userId){
-      content = (body.isOwner==1?'\"群主\"':VM.user.nick)+' 撤回了一条消息'
+      content = (body.isOwner==1?'群主':VM.user.nick)+'撤回了一条消息'
     }else{
-      content = (body.isOwner==1?'\"群主\"':'')+' 撤回了 \"'+nick+'\" 的一条消息'
+      content = (body.isOwner==1?'群主':'')+'撤回了'+nick+'的一条消息'
     }
   }else{
-    content = '\"'+VM.user.nick+'\" 撤回了一条消息'
+    content = VM.user.nick+'撤回了一条消息'
   }
-  console.log(content)
+  // console.log(content)
 
   msgItem.data.body['content'] = content;
   msgItem.data.ext['action'] = 6001;
-  console.log('调用api接口传的数据base64原数据：',msgItem)
+  // console.log('调用api接口传的数据base64原数据：',msgItem)
   let msgItemCopy = JSON.parse(JSON.stringify(msgItem));
   delete msgItemCopy['time']
-  console.log('msgItemCopy:',msgItemCopy)
+  // console.log('msgItemCopy:',msgItemCopy)
   param = {
     mid:msgItem.data.msgId,
     message:base64.encode(JSON.stringify(msgItemCopy))
@@ -477,7 +478,7 @@ let withdrawMsg = async (msgItem) => {
   if(msgItem.data.from==VM.user.userId){
     msgItem.data.body['content'] = '你撤回了一条消息';
   }else{
-    msgItem.data.body['content'] = '你撤回了 \"'+msgItem.data.ext.nick+'\" 一条消息';
+    msgItem.data.body['content'] = '你撤回了'+msgItem.data.ext.nick+'一条消息';
   }
 
   let res = await API.withdrawMessage(param);
@@ -489,6 +490,78 @@ let withdrawMsg = async (msgItem) => {
   }
 }
 
+function forwardMsg(uid,msgData,chatType){
+  console.log(uid,msgData);
+  let msgId = guid();
+	let time = new Date();
+	let body;
+  let data = {
+		data:{
+			ext:{
+				nick:VM.user.nick,
+				avatar:VM.user.avatar,
+				userId:VM.user.userId,
+			},
+			msgType:msgData.data.msgType,
+			msgId:msgId,
+			from:VM.user.userId,
+			to:uid,
+			body:msgData.data.body,
+			chatType:chatType=='chat'?'1':'2'
+    },
+    time: dayjs(time).valueOf(),
+		type:2000
+	};
+  let bodyContent =  base64.encode(JSON.stringify(data));
+  let msg;
+	if(chatType=='chat'){
+		msg = $msg({
+			to:exChangeJid(uid),
+			from:exChangeJid(VM.user.userId),
+			type:'chat',
+			id:msgId
+		})
+		.c("body",null,bodyContent)
+		.c('request',{xmlns:'urn:xmpp:receipts'},'')
+		.c('stamp',null,time)
+		.c('delay',{
+			urn:'urn:xmpp:delay',
+			stamp:time,
+			from:'app.im',
+		},'')
+	}else if(chatType=='groupchat'){
+		msg = $msg({
+			to:uid+'@muc.app.im',
+			from:exChangeJid(VM.user.userId),
+			type:'groupchat',
+			id:msgId
+		})
+		.c("body",null,bodyContent)
+		.c('delay',{
+			urn:'urn:xmpp:delay',
+			stamp:time,
+			from:'app.im',
+		},'')
+	}
+
+	if(connected){
+		// console.log(data)
+    saveMsg(data)
+
+		//上传消息记录
+		let param = {
+			fromId:VM.user.userId,
+			toId:uid,
+			chattype:chatType=='chat'?'1':'2',
+			message:bodyContent,
+			mid:chatType=='chat'?'':msgId,
+		}
+		uploadMessage(param);
+		connection.send(msg.tree());
+	}else{
+		alert('与聊天服务器断开连接……')
+	}
+}
 
 
 //创建唯一表示 uuid
@@ -509,5 +582,6 @@ export {
 	sendMsg,
 	saveMsg,
   logOutIm,
-  withdrawMsg
+  withdrawMsg,
+  forwardMsg
 }

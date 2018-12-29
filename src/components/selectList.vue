@@ -1,82 +1,43 @@
 <template>
-  <div class="select-box">
+  <div class="select-box" v-show="isShow">
     <div class="shade"></div>
     <div class="select-box-content">
       <div class="left">
-        <ul class="left-list">
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button checkbox"></span>
-          </li>
-        </ul>
+        <div class="left-list">
+          <div v-if="groupList.length">
+            <p class="title">群组列表</p>
+            <ul>
+              <li v-for="(item,index) in groupList" :key="index" @click="select(item)">
+                <img class="avatar" :src="item.avatar" alt="">
+                <p class="nick">{{item.nick}}</p>
+                <span :class="['button', 'checkbox', item.selected?'checked':'']"></span>
+              </li>
+            </ul>
+          </div>
+          <div v-if="userList.length">
+            <p class="title">好友列表</p>
+            <ul>
+              <li v-for="(item,index) in userList" :key="index" @click="select(item)">
+                <img class="avatar" :src="item.avatar" alt="">
+                <p class="nick">{{item.nick}}</p>
+                <span :class="['button', 'checkbox', item.selected?'checked':'']"></span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
       <div class="right">
+        <p class="text">已选择了{{selectedContactList.length}}个联系人</p>
         <ul class="left-list">
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试lin</p>
-            <span class="button delete"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
-            <span class="button delete"></span>
-          </li>
-          <li>
-            <img class="avatar" :src="'/static/images/contact.png'" alt="">
-            <p class="nick">测试测试测试测试测试测试测试lin</p>
+          <li v-for="(item,index) in selectedContactList" :key="index" @click="select(item)">
+            <img class="avatar" :src="item.avatar" alt="">
+            <p class="nick">{{item.nick}}</p>
             <span class="button delete"></span>
           </li>
         </ul>
         <div class="button-box">
-          <button class="ok">确定</button>
-          <button class="cancel">取消</button>
+          <button class="ok" @click="ok">确定</button>
+          <button class="cancel" @click="cancel">取消</button>
         </div>
       </div>
     </div>
@@ -87,7 +48,59 @@
 export default {
   data(){
     return {
-      text:'选择列表'
+      selectedContactList:[],
+      groupList:[],
+      userList:[],
+    }
+  },
+  watch:{
+    isShow(newval,oldval){
+      if(!newval) {
+        this.selectedContactList = [];
+        this.groupList = [];
+        this.userList = [];
+      }else{
+        this.listData.forEach(item=>{
+          item['selected'] = false;
+          if(item.type=='user'){
+            this.userList.push(item);
+          }else{
+            this.groupList.push(item);
+          }
+        });
+      }
+    }
+  },
+  props:{
+    listData:{
+      type: Array,
+      default: ()=>[]
+    },
+    isShow:{
+      type:Boolean,
+      default:false
+    }
+  },
+  methods:{
+    ok(){
+      this.$emit('onensure',this.selectedContactList);
+    },
+    cancel(){
+      this.$emit('oncancel');
+    },
+    select(item){
+      if(!item.selected){
+        this.selectedContactList.push(item);
+      }else{
+        let uid = item.uid;
+        for(let i=0; i<this.selectedContactList.length; i++){
+          if(this.selectedContactList[i].uid==uid){
+            this.selectedContactList.splice(i,1);
+            break;
+          }
+        }
+      }
+      item.selected = !item.selected;
     }
   }
 }
@@ -115,19 +128,24 @@ export default {
       background #fff;
       border-radius 5px
       box-shadow 0 0 15px #aaa
-      width 500px
+      width 520px
       height 460px
       &>div
         padding 20px 0
         flex 1
         &.left
-          overflow-y scroll
+          overflow-y auto
           li:hover
             cursor pointer
             background #ddd
+          .title
+            padding 0 20px
+            line-height 20px
         &.right
+          .text
+            padding 0 20px 10px
           ul
-            height 390px
+            height 370px
             overflow-y scroll
           .button-box
             height 50px
