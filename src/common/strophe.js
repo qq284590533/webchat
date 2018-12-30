@@ -11,6 +11,7 @@ let base64 = new Base64()
 let VM;
 let connected = false;
 let connection;
+let reLogin = false;
 connection = new Strophe.Connection(BOSH_SERVICE);
 // connection = new Strophe.Connection(BOSH_SERVICE,{sync: false});
 connection.rawInput = rawInput;
@@ -26,6 +27,14 @@ function log(msg) {
 
 function rawInput(data) {
 	log('RECV: ' + data);
+	let html = document.createElement('html');
+	html.innerHTML = data;
+	let body = html.querySelector('body');
+	let condition = body.getAttribute('condition');
+	if(condition&&condition=="remote-stream-error"){
+		// alert("账号在其他地方登陆，您已被迫下线。")
+		reLogin = confirm("账号在其他地方登陆，您已被迫下线，是否重新连接？");
+	}
 }
 
 function rawOutput(data) {
@@ -77,12 +86,16 @@ function onConnect(status) {
 			console.log('已断开连接')
 			connected = false;
 			if(!VM.isLogOut){
-				loginIm({
-					userId: VM.user.userId,
-					imPassword:VM.user.imPassword
-				})
+				if(reLogin){
+					loginIm({
+						userId: VM.user.userId,
+						imPassword:VM.user.imPassword
+					})
+				}else{
+					VM.isLogOut = true;
+					logOutIm('被迫下线');
+				}
 			}
-			break;
 		case Strophe.Status.CONNECTED:
 			console.log('已连接')
 			connected = true;
@@ -100,7 +113,7 @@ function onConnect(status) {
  * @param msg
  * @returns {boolean}
  */
-function onMessage(msg) {
+async function onMessage(msg) {
 	console.log(msg)
 	let elems = msg.getElementsByTagName('body');
 	let delay = msg.getElementsByTagName('delay');
@@ -112,7 +125,7 @@ function onMessage(msg) {
 
 		//发送消息回执
 		receipt(msg.getAttribute('id'))
-    console.log(JSON.parse(base64.decode(body)))
+   		console.log(JSON.parse(base64.decode(body)))
 		let msgBody;
 		let time;
 		if (type=='chat'||type=='groupchat'&elems.length > 0) {
@@ -127,19 +140,25 @@ function onMessage(msg) {
 				console.log(err);
 				return false;
 			}
-    }
-    console.log(msgBody)
+    	}
+    	console.log(msgBody)
+
 		switch(parseInt(msgBody.type)){
 			case 1000:
-        console.log('有消息撤回了！')
-
-        changLocalMessage(msgBody);
+				console.log('有消息撤回了！')
+				changLocalMessage(msgBody);
 				break;
 			case 2000:
+				if(msgBody.data.ext.action&&msgBody.data.ext.action==2000){
+					console.log('群创建成功')
+					//获取群列表
+					VM.getGroupList();
+				}
 				saveMsg(msgBody)
 				break;
 			case 4000:
 				console.log('群组被解散！')
+				deleteGroup(msgBody)
 				break;
 			default:
 				break;
@@ -563,6 +582,39 @@ function forwardMsg(uid,msgData,chatType){
 	}
 }
 
+function deleteGroup(msg){
+	console.log(msg)
+	let gid = msg.data.gid;
+	let groupNick = JSON.parse(JSON.stringify(VM.groupJson[gid])).name
+	for(let i=0; i<VM.groupList.length; i++){
+		if(VM.groupList[i].gid==gid){
+			VM.groupList.splice(i,1);
+		}
+	}
+	delete VM.groupJson[gid];
+	delete VM.messageJson[gid]
+	delete VM.talkListJson[gid]
+	if(VM.activeMessageView==gid){
+		VM.activeMessageView=""
+		VM.activeMessageViewType = ""
+		VM.activeMessageList = [];
+		VM.activeObject = {};
+	}
+	if(VM.talkList.length){
+		for(let i=0; i<VM.talkList.length; i++){
+			if(VM.talkList[i].data.to==gid){
+				VM.talkList.splice(i,1)
+				break;
+			}
+		}
+	}
+	VM.groupMembers = [];
+	saveLocal('MESSAGE_JSON_'+VM.user.userId,VM.messageJson)
+	saveLocal('TALK_LIST_JSON_'+VM.user.userId,VM.talkListJson)
+	saveLocal('TALK_LIST_'+VM.user.userId,VM.talkList)
+	VM.getGroupList(VM.user.userId);
+	alert(groupNick+' 已解散！')
+}
 
 //创建唯一表示 uuid
 function S4() {

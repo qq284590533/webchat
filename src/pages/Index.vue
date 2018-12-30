@@ -127,12 +127,7 @@
             </div>-->
             <div class="grouping" v-show="groupList.length">
               <p class="grouping-title">群聊列表</p>
-              <!-- <li
-                class="friends-item"
-                v-for="(group, index) in groupList"
-                :key="index"
-                @click="showBox(group.gid,'group')"
-              > -->
+
               <li
                 class="friends-item"
                 v-for="(group, index) in groupList"
@@ -150,12 +145,6 @@
             </div>
             <div class="grouping">
               <p class="grouping-title">好友列表</p>
-              <!-- <li
-                class="friends-item"
-                v-for="(friend, index) in friendsList"
-                :key="index"
-                @click="showBox(friend.userId,'user')"
-              > -->
               <li
                 class="friends-item"
                 v-for="(friend, index) in friendsList"
@@ -264,12 +253,20 @@
                   <div class="info-box" v-if="activeMessageViewType=='groupchat'">
                     <ul class="groupmembers-list">
                       <li v-for="(item, index) in groupMembers" :key="index" :title="item.nick">
-                        <img :src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar" alt="">
+                        <img
+                          :src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar"
+                          alt
+                        >
                         <p class="nick">{{item.nick}}</p>
                       </li>
-                      <li><span class="add-member" title="添加组员" @click="addMember">+</span></li>
-                      <li><span class="delete-member" title="删除组员" @click="deleteMember">-</span></li>
+                      <li v-show="user.userId == groupCreator">
+                        <span class="add-member" title="添加组员" @click="addMember">+</span>
+                      </li>
+                      <li v-show="user.userId == groupCreator">
+                        <span class="delete-member" title="删除组员" @click="deleteMember">-</span>
+                      </li>
                     </ul>
+										<button v-show="user.userId == groupCreator" class="delete-group" @click="deleteGroupHandle">解散本群</button>
                   </div>
                 </div>
               </div>
@@ -287,26 +284,42 @@
                   v-for="(message,index) in activeMessageList"
                   :key="index"
                 >
-                <div v-if="message.data.ext.action==6001">
-                  <p class="tip">{{message.data.body.content}}</p>
-                </div>
-                <div v-else>
-                  <img
-                    :src="message.data.ext.avatar=='false'||message.data.ext.avatar==''||!message.data.ext.avatar?'/static/images/contact.png':message.data.ext.avatar"
-                    :title="message.data.ext.nick"
-                  >
-                  <span class="content_box" v-if="message.data.msgType==2001" @contextmenu="showTools($event,message)">{{message.data.body.content}}</span>
-                  <span class="img_box content_box" v-else-if="message.data.msgType==2002" @contextmenu="showTools($event,message)">
-                    <img :title="message.data.body.fileName" :src="message.data.body.remotePath" :alt='message.data.body.fileName'>
-                  </span>
-                </div>
+                  <div v-if="message.data.ext.action==6001">
+                    <p class="tip">{{message.data.body.content}}</p>
+                  </div>
+                  <div v-else>
+                    <img
+                      :src="message.data.ext.avatar=='false'||message.data.ext.avatar==''||!message.data.ext.avatar?'/static/images/contact.png':message.data.ext.avatar"
+                      :title="message.data.ext.nick"
+                    >
+                    <span
+                      class="content_box"
+                      v-if="message.data.msgType==2001"
+                      @contextmenu="showTools($event,message)"
+                    >{{message.data.body.content}}</span>
+                    <span
+                      class="img_box content_box"
+                      v-else-if="message.data.msgType==2002"
+                      @contextmenu="showTools($event,message)"
+                    >
+                      <img
+                        :title="message.data.body.fileName"
+                        :src="message.data.body.remotePath"
+                        :alt="message.data.body.fileName"
+                      >
+                    </span>
+                  </div>
                 </li>
               </ul>
             </div>
             <ul v-show="showMenu" ref="contextmenu" class="menu-ul">
-              <li class="menu-li" v-if="menuItem.show" v-for="(menuItem,key) in contextmenu" :key="key" @click="clickMenuEvent(menuItem)">
-                {{menuItem.eventName}}
-              </li>
+              <li
+                class="menu-li"
+                v-if="menuItem.show"
+                v-for="(menuItem,key) in contextmenu"
+                :key="key"
+                @click="clickMenuEvent(menuItem)"
+              >{{menuItem.eventName}}</li>
             </ul>
           </div>
           <div class="windows_input" id="talkbox">
@@ -324,16 +337,18 @@
 
         <!-- 详情窗口 -->
         <div v-if="activeBox=='info'" class="info-box">
-          <div v-if="activeInfo=='user'" class="user-info">
-            {{infoId}}
-          </div>
-          <ul v-if="activeInfo=='group'" class="group-info">
-            {{infoId}}
-          </ul>
-      </div>
+          <div v-if="activeInfo=='user'" class="user-info">{{infoId}}</div>
+          <ul v-if="activeInfo=='group'" class="group-info">{{infoId}}</ul>
+        </div>
       </div>
     </div>
-    <selectList :isShow="showSelector" :listData="listData" @onensure="onensure" @oncancel="oncancel"></selectList>
+    <selectList
+      :isShow="showSelector"
+      :listData="listData"
+			:checktype="checktype"
+      @onensure="onensure"
+      @oncancel="oncancel"
+    ></selectList>
   </div>
 </template>
 
@@ -346,8 +361,8 @@ import { readLocal, sortChinese, objSortFun, saveLocal } from "../common/utils";
 import * as strophe from "../common/strophe.js";
 import { creatUploader } from "../common/upload.js";
 import * as API from "../api/index.js";
-import Base64 from '@/common/base64';
-import selectList from '@/components/selectList';
+import Base64 from "@/common/base64";
+import selectList from "@/components/selectList";
 
 let base64 = new Base64();
 
@@ -372,41 +387,43 @@ export default {
       activeMessageViewType: "",
       activeObject: {},
       isLogOut: false,
-			multi: false,
-			activeBox:'chat',
-			activeInfo:'user',
-			infoId:0,
-			showMenu:false,
-			msgItem: null,
-			contextmenu:{
-				1:{
-					eventType:1,
-					show:true,
-					eventName:'复制'
-				},
-				2:{
-					eventType:2,
-					show:true,
-					eventName:'转发'
-				},
-				3:{
-					eventType:3,
-					show:false,
-					eventName:'撤回'
-				}
-      },
-      showSelector:false,
-      groupMembers:[],
-      listData:[],
-      selectListType:0,  //1:创建群组选择联系人列表，2:转发选择联系人列表，3：删除群成员选择联系人列表
-      eventObj:{
-        prop:null,
-        handleFunc:()=>null,
+      multi: false,
+      activeBox: "chat",
+      activeInfo: "user",
+      infoId: 0,
+      showMenu: false,
+      msgItem: null,
+      contextmenu: {
+        1: {
+          eventType: 1,
+          show: true,
+          eventName: "复制"
+        },
+        2: {
+          eventType: 2,
+          show: true,
+          eventName: "转发"
+        },
+        3: {
+          eventType: 3,
+          show: false,
+          eventName: "撤回"
+        }
+			},
+			checktype:'checkbox',
+      showSelector: false,
+			groupMembers: [],
+			groupCreator:null,
+      listData: [],
+      selectListType: 0, //1:创建群组选择联系人列表，2:转发选择联系人列表，3：删除群成员选择联系人列表，4：添加群成员选择联系人列表
+      eventObj: {
+        prop: null,
+        handleFunc: () => null
       }
     };
   },
-  components:{
-    selectList,
+  components: {
+    selectList
   },
   filters: {
     formatDate(val) {
@@ -434,7 +451,7 @@ export default {
       if (this.activeMessageViewType == "groupchat") {
         if (this.groupJson[newval]) {
           this.activeObject = this.groupJson[newval];
-					this.activeObject.nick = this.groupJson[newval].name;
+          this.activeObject.nick = this.groupJson[newval].name;
         }
       } else if (this.activeMessageViewType == "chat") {
         this.activeObject = this.friendsJson[newval];
@@ -442,19 +459,22 @@ export default {
       if (this.messageJson[newval]) {
         this.activeMessageList = this.messageJson[newval].msgs;
       }
-			this.buildTalkView(newval);
+      this.buildTalkView(newval);
     },
 
-    selectListType(newval, oldval){
-      switch(newval){
+    selectListType(newval, oldval) {
+      switch (newval) {
         case 1:
-          this.listData = this.getSelectFriendstList()
+          this.listData = this.getSelectFriendstList();
           break;
         case 2:
-          this.listData = this.getSelectContactList()
+          this.listData = this.getSelectContactList();
           break;
         case 3:
-          this.listData = this.getSelectGroupMemberstList()
+          this.listData = this.getSelectGroupMemberstList();
+          break;
+        case 4:
+          this.listData = this.getSelectaddMemberstList();
           break;
         default:
           this.listData = [];
@@ -512,49 +532,52 @@ export default {
         avatar: avatar,
         nick: nick,
         time: oMsg.time,
-        content: oMsg.data&&oMsg.data.msgType == 2002 ? "[图片]" : oMsg.data.body.content,
-        type: oMsg.data.chatType == 1?'chat':'groupchat',
+        content:
+          oMsg.data && oMsg.data.msgType == 2002
+            ? "[图片]"
+            : oMsg.data.body.content,
+        type: oMsg.data.chatType == 1 ? "chat" : "groupchat",
         msgType: oMsg.data.msgType
       };
       // console.log(data)
       return data;
-		},
+    },
 
     changeObject(uid, type) {
-		  this.activeBox = 'chat',
-      this.activeMessageView = uid;
+      (this.activeBox = "chat"), (this.activeMessageView = uid);
       this.activeMessageViewType = type;
-		},
+    },
 
     async buildTalkView(uid) {
       let _this = this;
-			if(this.activeMessageViewType=='groupchat'){
-				let params1 = {
-					groupId:this.activeMessageView,
-					uid:this.user.userId
-				}
-				let params2 = {
-					gid:this.activeMessageView,
-					uid:this.user.userId
-				}
-				try{
-					let msgData = await API.getMsgByTimestamp(params1);
-					let groupMembersData = await API.getmucMembers(params2);
-					this.groupMembers = groupMembersData.data;
-					let msgList = msgData.data;
-					msgList.sort((a,b)=>{
-						if(a){
-							let timeA = parseInt(a.timeStamp)
-							let timeB = parseInt(b.timeStamp)
-							return timeA-timeB
-						}else{
-							return 0
-						}
-          })
-					msgList.forEach(msgItem=>{
-						let msg = JSON.parse(base64.decode(msgItem.message));
-            msg['time'] = parseInt(msgItem.timeStamp);
-            console.log(msg)
+      if (this.activeMessageViewType == "groupchat") {
+        let params1 = {
+          groupId: this.activeMessageView,
+          uid: this.user.userId
+        };
+        let params2 = {
+          gid: this.activeMessageView,
+          uid: this.user.userId
+				};
+				this.groupCreator = this.groupJson[uid].creator;
+        try {
+          let msgData = await API.getMsgByTimestamp(params1);
+          let groupMembersData = await API.getmucMembers(params2);
+          this.groupMembers = groupMembersData.data;
+          let msgList = msgData.data;
+          msgList.sort((a, b) => {
+            if (a) {
+              let timeA = parseInt(a.timeStamp);
+              let timeB = parseInt(b.timeStamp);
+              return timeA - timeB;
+            } else {
+              return 0;
+            }
+          });
+          msgList.forEach(msgItem => {
+            let msg = JSON.parse(base64.decode(msgItem.message));
+            msg["time"] = parseInt(msgItem.timeStamp);
+            // console.log(msg);
             // if(msg.data.ext.action==6001){
             //   if(this.groupList[uid].creator==this.user.userId){
             //     msg.data.body.content = '你撤回了一条消息'
@@ -563,17 +586,19 @@ export default {
             //   }
             // }
             // console.log(msg)
-						strophe.saveMsg(msg);
-					})
-				}catch(err){
-					console.log(err)
-				}
+            strophe.saveMsg(msg);
+          });
+        } catch (err) {
+          console.log(err);
+        }
       }
-      this.activeMessageList = this.messageJson[uid]?this.messageJson[uid]:[];
+      this.activeMessageList = this.messageJson[uid]
+        ? this.messageJson[uid]
+        : [];
       setTimeout(function() {
         _this.$refs.officeText.scrollTop = _this.$refs.officeText.scrollHeight;
       }, 0);
-		},
+    },
 
     checkEnter(e) {
       var et = e || window.event;
@@ -586,7 +611,7 @@ export default {
         }
         this.sendMsg(2001);
       }
-		},
+    },
 
     sendMsg(msgType, imgFile) {
       if (!this.activeMessageView) {
@@ -611,219 +636,391 @@ export default {
       } else if (msgType == 2002) {
         strophe.sendMsg(msgObj, msgType, imgFile);
       }
-		},
+    },
 
     logOutIm() {
       this.isLogOut = true;
       strophe.logOutIm("主动登出");
-		},
+    },
 
-		showBox(id,type){
-			this.activeBox = 'info'
-			if(type==='group'){
-				this.activeInfo = 'group';
-			}else{
-				this.activeInfo = 'user';
-			}
-			this.infoId = id
-		},
+    showBox(id, type) {
+      this.activeBox = "info";
+      if (type === "group") {
+        this.activeInfo = "group";
+      } else {
+        this.activeInfo = "user";
+      }
+      this.infoId = id;
+    },
 
-		showTools(e,msg){
-      console.log(msg)
-      if(msg.data.msgType==2002){
-        this.contextmenu['1'].show = false;
-      }else{
-        this.contextmenu['1'].show = true;
+    showTools(e, msg) {
+      console.log(msg);
+      if (msg.data.msgType == 2002) {
+        this.contextmenu["1"].show = false;
+      } else {
+        this.contextmenu["1"].show = true;
       }
 
-			if(this.activeMessageViewType == "groupchat"){
-				if(this.groupMembers[0].userId==this.user.userId||msg.data.from==this.user.userId) {
-					this.contextmenu['3'].show = true;
-				}else{
-					this.contextmenu['3'].show = false;
+      if (this.activeMessageViewType == "groupchat") {
+        if (
+          this.groupMembers[0].userId == this.user.userId ||
+          msg.data.from == this.user.userId
+        ) {
+          this.contextmenu["3"].show = true;
+        } else {
+          this.contextmenu["3"].show = false;
         }
-			}else{
-				if(msg.data.from==this.user.userId){
-					this.contextmenu['3'].show = true;
-				}else{
-					this.contextmenu['3'].show = false;
-				}
-			}
+      } else {
+        if (msg.data.from == this.user.userId) {
+          this.contextmenu["3"].show = true;
+        } else {
+          this.contextmenu["3"].show = false;
+        }
+      }
 
-			e.preventDefault() ? e.preventDefault() : (e.returnValue = false);;
-			e.stopPropagation();
-			let windowsBody = this.$refs.windowsBody
-			let contextmenu = this.$refs.contextmenu
+      e.preventDefault() ? e.preventDefault() : (e.returnValue = false);
+      e.stopPropagation();
+      let windowsBody = this.$refs.windowsBody;
+      let contextmenu = this.$refs.contextmenu;
 
-			let x = e.clientX - windowsBody.getBoundingClientRect().x
-			let y = e.clientY - windowsBody.getBoundingClientRect().y
-			contextmenu.style.left = x+'px'
-			contextmenu.style.top = y+'px'
-			this.showMenu = true;
-			this.msgItem = msg;
-		},
+      let x = e.clientX - windowsBody.getBoundingClientRect().x;
+      let y = e.clientY - windowsBody.getBoundingClientRect().y;
+      contextmenu.style.left = x + "px";
+      contextmenu.style.top = y + "px";
+      this.showMenu = true;
+      this.msgItem = msg;
+    },
 
     //点击邮件菜单事件分配方法
-		clickMenuEvent(menuItem){
-			switch(menuItem.eventType){
-				case 1:
-					this.copyCont();
-					break;
-				case 2:
-					this.forwardMsg();
-					break;
-				case 3:
-					this.withdrawMsg();
-					break;
-			}
+    clickMenuEvent(menuItem) {
+      switch (menuItem.eventType) {
+        case 1:
+          this.copyCont();
+          break;
+        case 2:
+          this.forwardMsg();
+          break;
+        case 3:
+          this.withdrawMsg();
+          break;
+      }
     },
 
     //创建群组
-    createGroup(){
+    createGroup() {
       //暂时未开放
-      // this.eventObj.handleFunc = this.createGroupHandle;
       // this.initSelector(1)
+      // this.eventObj.handleFunc = this.createGroupHandle;
     },
 
     //创建群组事件处理
-    createGroupHandle(list){
-      console.log(list)
+    createGroupHandle(list) {
+      console.log(list);
     },
 
-    getSelectContactList(){
+    getSelectContactList() {
       let list = [];
-      this.friendsList.forEach(item=>{
+      this.friendsList.forEach(item => {
         let friendsItem = {
-          avatar:item.avatar==""||item.avatar=="false"||!item.avatar?"/static/images/contact.png":item.avatar,
-          nick:item.nick,
-          uid:item.userId,
-          type:'user'
-        }
+          avatar:
+            item.avatar == "" || item.avatar == "false" || !item.avatar
+              ? "/static/images/contact.png"
+              : item.avatar,
+          nick: item.nick,
+          uid: item.userId,
+          type: "user"
+        };
         list.push(friendsItem);
-      })
-      this.groupList.forEach(item=>{
+      });
+      this.groupList.forEach(item => {
         let groupItem = {
-          avatar:item.imgurlde==""||item.imgurlde=="false"||!item.imgurlde?"/static/images/contact.png":item.imgurlde,
-          nick:item.name,
-          uid:item.gid,
-          type:'group'
-        }
+          avatar:
+            item.imgurlde == "" || item.imgurlde == "false" || !item.imgurlde
+              ? "/static/images/contact.png"
+              : item.imgurlde,
+          nick: item.name,
+          uid: item.gid,
+          type: "group"
+        };
         list.push(groupItem);
-      })
-      console.log(list)
+      });
+      console.log(list);
       return list;
     },
 
-    getSelectFriendstList(){
+    getSelectFriendstList() {
       let list = [];
-      this.friendsList.forEach(item=>{
+      this.friendsList.forEach(item => {
         let friendsItem = {
-          avatar:item.avatar==""||item.avatar=="false"||!item.avatar?"/static/images/contact.png":item.avatar,
-          nick:item.nick,
-          uid:item.userId,
-        }
+          avatar:
+            item.avatar == "" || item.avatar == "false" || !item.avatar
+              ? "/static/images/contact.png"
+              : item.avatar,
+          nick: item.nick,
+					uid: item.userId,
+					type:'user'
+        };
         list.push(friendsItem);
-      })
-      console.log(list)
+      });
+      console.log(list);
       return list;
-    },
-    getSelectGroupMemberstList(){
+		},
+		
+		//获取群成员选择列表
+    getSelectGroupMemberstList() {
       let list = [];
-      this.groupMembers.forEach(item=>{
+      this.groupMembers.forEach(item => {
         let memberItem = {
-          avatar:item.avatar==""||item.avatar=="false"||!item.avatar?"/static/images/contact.png":item.avatar,
-          nick:item.nick,
-          uid:item.userId,
-        }
+          avatar:
+            item.avatar == "" || item.avatar == "false" || !item.avatar
+              ? "/static/images/contact.png"
+              : item.avatar,
+          nick: item.nick,
+					uid: item.userId,
+					type:'user'
+        };
         list.push(memberItem);
-      })
-      console.log(list)
+      });
+      console.log(list);
       return list;
-    },
+		},
+
+		//获取添加群成员选择列表
+		getSelectaddMemberstList(){
+			let list = this.getSelectFriendstList();
+			console.log(list)
+			list.forEach(item=>{
+				let isInGroup = false;
+				for(let i=0; i<this.groupMembers.length; i++){
+					let membersItem = this.groupMembers[i];
+					if(membersItem.userId==item.uid){
+						item['disable'] = true;
+						item['selected'] = true;
+					}
+				}
+			})
+			return list;
+		},
+
     //复制消息方法
-		copyCont(){
-      console.log('复制内容');
-      let input = document.createElement('input');
+    copyCont() {
+      console.log("复制内容");
+      let input = document.createElement("input");
       input.value = this.msgItem.data.body.content;
       document.body.appendChild(input);
       input.select();
       document.execCommand("Copy");
-      input.remove()
-		},
+      input.remove();
+    },
 
     //转发消息事件设置
-		forwardMsg(){
-      console.log('转发消息');
-      this.initSelector(2)
+    forwardMsg() {
+      console.log("转发消息");
+      this.initSelector(2);
       this.eventObj.prop = this.msgItem;
       this.eventObj.handleFunc = this.forwardMsgHandle;
-		},
+    },
 
     //转发消息处理函数
-    forwardMsgHandle(msg,list){
-      console.log(list)
-      list.forEach(item=>{
-        let msgcopy = JSON.parse(JSON.stringify(msg))
+    forwardMsgHandle(msg, list) {
+			console.log(list);
+			if(!list.length) {
+				alert('至少选择一个联系人！')
+				return
+			};
+      list.forEach(item => {
+        let msgcopy = JSON.parse(JSON.stringify(msg));
         let uid = item.uid;
-        let chatType = item.type=='user'?'chat':'groupchat';
-        strophe.forwardMsg(uid,msgcopy,chatType)
-      })
+        let chatType = item.type == "user" ? "chat" : "groupchat";
+        strophe.forwardMsg(uid, msgcopy, chatType);
+      });
     },
 
     //撤回消息
-		withdrawMsg(){
-			console.log('撤回消息');
+    withdrawMsg() {
+      console.log("撤回消息");
       strophe.withdrawMsg(this.msgItem);
-		},
+    },
 
     //初始化选择列表
-    initSelector(selectType){
+    initSelector(selectType) {
       this.selectListType = selectType;
       this.showSelector = true;
     },
 
     //事件方法执行器
-    eventHandle(argument){
+    eventHandle(argument) {
       let prop = this.eventObj.prop;
       let funcName = this.eventObj.handleFunc;
-      if(prop){
-        funcName(prop,argument);
-      }else{
+      if (prop) {
+        funcName(prop, argument);
+      } else {
         funcName(argument);
       }
       this.eventObj = {
-        prop:null,
-        handleFunc:()=>null,
-      }
+        prop: null,
+        handleFunc: () => null
+      };
     },
 
     //选择列表确定按钮事件处理
-    onensure(list){
+    onensure(list) {
       this.eventHandle(list);
-      this.showSelector = false;
+			this.showSelector = false;
+			this.selectListType = 0;
+			this.checktype = 'checkbox';
+
     },
 
-    oncancel(){
-      console.log('取消')
-      this.showSelector = false;
+    oncancel() {
+      console.log("取消");
+			this.showSelector = false;
+			this.selectListType = 0;
+			this.checktype = 'checkbox';
     },
 
-    addMember(){
-      this.initSelector(1)
+    addMember() {
+			this.initSelector(4);
       this.eventObj.handleFunc = this.addMemberHandle;
     },
 
-    addMemberHandle(list){
-      console.log(list)
+    async addMemberHandle(list) {
+			console.log(list);
+			let memberList = [];
+			list.forEach(item => {
+				memberList.push(item.uid)
+			})
+			let params = JSON.stringify({
+				command: {
+          node: "member-add",
+          fields: [
+            {
+              var: "uid",
+              value: this.user.userId
+            }, {
+							var: "gid",
+							value: this.activeMessageView
+						}, {
+							var: "oid",
+							value: memberList
+            }
+          ]
+        }
+			})
+			// console.log(params)
+			try{
+				let res = await API.addMember({
+					jsonStr: params
+				});
+
+				let groupMembersData = await API.getmucMembers({
+					gid: this.activeMessageView,
+          uid: this.user.userId	
+				});
+				this.groupMembers = groupMembersData.data;
+				console.log(res);
+			}catch(error){
+				console.log(error)
+			}
     },
 
-    deleteMember(){
-      this.initSelector(3)
+    deleteMember() {
+			this.checktype = 'radio';
+      this.initSelector(3);
       this.eventObj.handleFunc = this.deleteMemberHandle;
     },
-    deleteMemberHandle(list){
-      console.log(list)
-    },
+    async deleteMemberHandle(list) {
+			console.log(list);
+			let memberList = [];
+			list.forEach(item => {
+				memberList.push(item.uid)
+			})
+			let params = JSON.stringify({
+				command: {
+          node: "member-del",
+          fields: [
+            {
+              var: "uid",
+              value: this.user.userId
+            }, {
+							var: "gid",
+							value: this.activeMessageView
+						}, {
+							var: "oid",
+							value: memberList
+            }
+          ]
+        }
+			})
+			// console.log(params)
+			try{
+				let res = await API.deleteMember({
+					jsonStr: params
+				});
+				let groupMembersData = await API.getmucMembers({
+					gid: this.activeMessageView,
+          uid: this.user.userId	
+				});
+				this.groupMembers = groupMembersData.data;
+				console.log(res);
+			}catch(error){
+				console.log(error)
+			}
+		},
+		
+		async deleteGroupHandle(){
+			let doDelete = confirm("确定解散群组吗？");
+			if(!doDelete) return;
+			let params = JSON.stringify({
+				command: {
+          node: "group-del",
+          fields: [
+            {
+              var: "uid",
+              value: this.user.userId
+            }, {
+							var: "gid",
+							value: this.activeMessageView
+						}
+          ]
+        }
+			})
+			try{
+				let res = API.deleteGroup({
+					jsonStr: params
+				});
+				console.log(res);
+			}catch(error){
+				console.log(error);
+			}
+		},
+		async getGroupList(uid){
+			//获取群列表
+			let groupData = await API.getGroupList({
+				jsonStr: JSON.stringify({
+					command: {
+						node: "group-get",
+						fields: [
+							{
+								var: "uid",
+								value: this.user.userId
+							}
+						]
+					}
+				})
+			});
+			groupData.data.command.fields.forEach(item => {
+				let groupId = item.gid;
+				item.isGroup = true;
+				this.groupJson[groupId] = item;
+			});
+			//存储群列表到本地
+			saveLocal("GROUP_LIST_" + uid, this.groupJson);
+			this.groupList = [];
+			for (let item in this.groupJson) {
+				this.groupList.push(this.groupJson[item]);
+			}
+		}
   },
   async created() {
     let _this = this;
@@ -863,30 +1060,8 @@ export default {
       this.friendsList.push(this.friendsJson[item]);
     }
 
-    //获取群列表
-    let groupData = await API.getGroupList({
-      jsonStr: JSON.stringify({
-        command: {
-          node: "group-get",
-          fields: [
-            {
-              var: "uid",
-              value: this.user.userId
-            }
-          ]
-        }
-      })
-    });
-    groupData.data.command.fields.forEach(item => {
-      let groupId = item.gid;
-      item.isGroup = true;
-      this.groupJson[groupId] = item;
-    });
-    //存储群列表到本地
-    saveLocal("GROUP_LIST_" + uid, this.groupJson);
-    for (let item in this.groupJson) {
-      this.groupList.push(this.groupJson[item]);
-    }
+		this.getGroupList(uid)
+
     let activeTime = new Date().getTime();
     this.friendsJson = readLocal("FRIENDS_LIST_" + uid) || {};
     this.messageJson = readLocal("MESSAGE_JSON_" + uid) || {};
@@ -913,10 +1088,15 @@ export default {
     });
 
     this.talkList = copyTalkList;
+		this.talkListJson = readLocal("TALK_LIST_JSON" + uid) || {};
+		
+		this.$refs.inputBox.addEventListener("keydown", function(e) {
+      _this.checkEnter(e);
+    });
 
-    this.talkListJson = readLocal("TALK_LIST_JSON" + uid) || {};
-
-    if (this.talkList.length) {
+  },
+  mounted() {
+		if (this.talkList.length) {
       let activeTalkList = this.talkList[0];
       if (activeTalkList.data.chatType == "1") {
         if (activeTalkList.data.from == this.user.userId) {
@@ -927,26 +1107,22 @@ export default {
       } else if (activeTalkList.data.chatType == "2") {
         this.activeMessageView = activeTalkList.data.to;
       }
-      this.activeMessageViewType = activeTalkList.data.chatType == "1"?'chat':'groupchat';
+      this.activeMessageViewType =
+        activeTalkList.data.chatType == "1" ? "chat" : "groupchat";
     }
-    this.$refs.inputBox.addEventListener("keydown", function(e) {
-      _this.checkEnter(e);
-    });
-  },
-  mounted() {
     creatUploader(this);
   }
 };
 </script>
 
 <style lang="stylus">
-
-.wrapper
-  width 100%
-  height 100%
-  display flex
-  justify-content center
-  align-items center
+.wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
 .middle {
   display: block;
@@ -1052,17 +1228,20 @@ export default {
       width: 100%;
     }
   }
+
   .tip {
-    text-align center
+    text-align: center;
   }
 }
 
-.am-offcanvas-bar{
-  background #f1f1f1
-  &:after{
-    display none
+.am-offcanvas-bar {
+  background: #f1f1f1;
+
+  &:after {
+    display: none;
   }
-  box-shadow 0 -2px 10px #666
+
+  box-shadow: 0 -2px 10px #666;
 }
 
 .message_view {
@@ -1126,68 +1305,97 @@ export default {
   }
 }
 
-.menu-ul{
-	position absolute
-	width 60px
-	border-radius 5px;
-	background #ddd;
-	font-size 12px
-	color #666
-	line-height 24px
-	text-align center
-	box-shadow 2px 2px 4px #999
-	overflow hidden
-	.menu-li{
-		border-top 1px dotted #fff
-		cursor pointer
+.menu-ul {
+  position: absolute;
+  width: 60px;
+  border-radius: 5px;
+  background: #ddd;
+  font-size: 12px;
+  color: #666;
+  line-height: 24px;
+  text-align: center;
+  box-shadow: 2px 2px 4px #999;
+  overflow: hidden;
+
+  .menu-li {
+    border-top: 1px dotted #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: #c9c9c9;
+      color: #333;
+    }
+
+    &:first-child {
+      border-top: none;
+    }
+  }
+}
+
+.am-offcanvas-content {
+  .groupmembers-list {
+    max-height: 400px;
+    overflow: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+
+    li {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      text-align: center;
+      flex-flow: wrap;
+      justify-content: center;
+      margin-bottom: 10px;
+
+      img {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+      }
+
+      p {
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 20px;
+        font-size: 12px;
+        color: #666;
+      }
+
+      span {
+        width: 40px;
+        height: 40px;
+        border: 1px solid #bbb;
+        cursor: pointer;
+        font-size: 30px;
+        line-height: 32px;
+        font-weight: 100;
+        color: #bbb;
+
+        &:hover {
+          border-color: #999;
+          color: #999;
+        }
+      }
+    }
+  }
+	.delete-group{
+		border none
+		height 38px
+		width 100%
+		color #fff
+		background #ff8e8e
+		border-radius 4px
+		font-size 14px
+		margin-top 20px
 		&:hover{
-			background #c9c9c9
-			color #333
-		}
-		&:first-child{
-			border-top none
+			background #ff7272
 		}
 	}
-}
-.am-offcanvas-content
-  .groupmembers-list
-    height 400px
-    overflow auto
-    display flex
-    flex-wrap wrap
-    align-items flex-start
-    align-content flex-start
-    li
-      width 60px
-      height 60px
-      display flex
-      text-align center
-      flex-flow wrap
-      justify-content center
-      margin-bottom 10px
-      img
-        display inline-block
-        width 40px;
-        height 40px;
-      p
-        width 100%
-        overflow hidden
-        text-overflow ellipsis
-        white-space nowrap
-        line-height 20px
-        font-size 12px
-        color #666
-      span
-        width 40px
-        height 40px
-        border 1px solid #bbb
-        cursor pointer
-        font-size 30px
-        line-height 32px
-        font-weight 100
-        color #bbb
-        &:hover
-          border-color #999
-          color #999
 
+}
 </style>
