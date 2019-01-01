@@ -29,14 +29,14 @@ export function checkQruuid(params) {
 }
 
 //添加好友
-export function addFriends(params) {
-	return ajax({
-		url: '/web/api/setFriends',
-		method: 'post',
-		dataType: "jsonp",
-		data: params,
-	})
-}
+// export function addFriends(params) {
+// 	return ajax({
+// 		url: '/web/api/setFriends',
+// 		method: 'post',
+// 		dataType: "jsonp",
+// 		data: params,
+// 	})
+// }
 
 //获取好友
 export function getFriendsList(params) {
@@ -137,7 +137,6 @@ export function addFriend(params) {
 		data: params,
 	})
 }
-
 
 //获取群信息
 export function getGroupInfo(params) {

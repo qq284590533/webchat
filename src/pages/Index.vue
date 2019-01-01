@@ -116,15 +116,15 @@
         </div>
         <div class="office_text">
           <ul class="friends_list">
-            <!-- <div class="grouping">
+            <div class="grouping">
               <p class="grouping-title">新的朋友</p>
-              <li class="friends-item">
+              <li class="friends-item" @click="showNewFriend">
                 <div class="item-box">
-                  <img src="/static/images/head/1.jpg"/>
+                  <img src="/static/images/contact.png"/>
                   <p class="user_name">新的朋友</p>
                 </div>
               </li>
-            </div>-->
+            </div>
             <div class="grouping" v-show="groupList.length">
               <p class="grouping-title">群聊列表</p>
 
@@ -266,7 +266,11 @@
                         <span class="delete-member" title="删除组员" @click="deleteMember">-</span>
                       </li>
                     </ul>
-										<button v-show="user.userId == groupCreator" class="delete-group" @click="deleteGroupHandle">解散本群</button>
+                    <button
+                      v-show="user.userId == groupCreator"
+                      class="delete-group"
+                      @click="deleteGroupHandle"
+                    >解散本群</button>
                   </div>
                 </div>
               </div>
@@ -340,15 +344,33 @@
           <div v-if="activeInfo=='user'" class="user-info">{{infoId}}</div>
           <ul v-if="activeInfo=='group'" class="group-info">{{infoId}}</ul>
         </div>
+
+		<!-- 新的朋友 -->
+        <div v-if="activeBox=='newFriend'" class="new-friend-box">
+          <div class="new-friend-content">
+						<ul>
+							<li v-for="(item,index) in newFriend" :key="index">
+								<p>{{item.nick}}</p>
+								<p>{{item.reason}}</p>
+							</li>
+						</ul>
+					</div>
+        </div>
       </div>
     </div>
     <selectList
       :isShow="showSelector"
       :listData="listData"
-			:checktype="checktype"
+      :checktype="checktype"
       @onensure="onensure"
       @oncancel="oncancel"
     ></selectList>
+		<newFriendBox
+			:isShow="showNewFriendBox"
+			:friendData="friendData"
+      @onensure="addFriend"
+      @oncancel="addFriendCancel"
+		></newFriendBox>
   </div>
 </template>
 
@@ -363,6 +385,7 @@ import { creatUploader } from "../common/upload.js";
 import * as API from "../api/index.js";
 import Base64 from "@/common/base64";
 import selectList from "@/components/selectList";
+import newFriendBox from "@/components/newFriend";
 
 let base64 = new Base64();
 
@@ -409,21 +432,25 @@ export default {
           show: false,
           eventName: "撤回"
         }
-			},
-			checktype:'checkbox',
+      },
+      checktype: "checkbox",
       showSelector: false,
-			groupMembers: [],
-			groupCreator:null,
+      showNewFriendBox: false,
+      groupMembers: [],
+      groupCreator: null,
       listData: [],
       selectListType: 0, //1:创建群组选择联系人列表，2:转发选择联系人列表，3：删除群成员选择联系人列表，4：添加群成员选择联系人列表
       eventObj: {
         prop: null,
         handleFunc: () => null
-      }
+	  	},
+			newFriend:[],
+			friendData:{}
     };
   },
   components: {
-    selectList
+	selectList,
+	newFriendBox
   },
   filters: {
     formatDate(val) {
@@ -558,8 +585,8 @@ export default {
         let params2 = {
           gid: this.activeMessageView,
           uid: this.user.userId
-				};
-				this.groupCreator = this.groupJson[uid].creator;
+        };
+        this.groupCreator = this.groupJson[uid].creator;
         try {
           let msgData = await API.getMsgByTimestamp(params1);
           let groupMembersData = await API.getmucMembers(params2);
@@ -651,6 +678,11 @@ export default {
         this.activeInfo = "user";
       }
       this.infoId = id;
+    },
+
+    showNewFriend(id, type) {
+      this.activeBox = "newFriend";
+
     },
 
     showTools(e, msg) {
@@ -757,16 +789,16 @@ export default {
               ? "/static/images/contact.png"
               : item.avatar,
           nick: item.nick,
-					uid: item.userId,
-					type:'user'
+          uid: item.userId,
+          type: "user"
         };
         list.push(friendsItem);
       });
       console.log(list);
       return list;
-		},
-		
-		//获取群成员选择列表
+    },
+
+    //获取群成员选择列表
     getSelectGroupMemberstList() {
       let list = [];
       this.groupMembers.forEach(item => {
@@ -776,31 +808,31 @@ export default {
               ? "/static/images/contact.png"
               : item.avatar,
           nick: item.nick,
-					uid: item.userId,
-					type:'user'
+          uid: item.userId,
+          type: "user"
         };
         list.push(memberItem);
       });
       console.log(list);
       return list;
-		},
+    },
 
-		//获取添加群成员选择列表
-		getSelectaddMemberstList(){
-			let list = this.getSelectFriendstList();
-			console.log(list)
-			list.forEach(item=>{
-				let isInGroup = false;
-				for(let i=0; i<this.groupMembers.length; i++){
-					let membersItem = this.groupMembers[i];
-					if(membersItem.userId==item.uid){
-						item['disable'] = true;
-						item['selected'] = true;
-					}
-				}
-			})
-			return list;
-		},
+    //获取添加群成员选择列表
+    getSelectaddMemberstList() {
+      let list = this.getSelectFriendstList();
+      console.log(list);
+      list.forEach(item => {
+        let isInGroup = false;
+        for (let i = 0; i < this.groupMembers.length; i++) {
+          let membersItem = this.groupMembers[i];
+          if (membersItem.userId == item.uid) {
+            item["disable"] = true;
+            item["selected"] = true;
+          }
+        }
+      });
+      return list;
+    },
 
     //复制消息方法
     copyCont() {
@@ -823,11 +855,11 @@ export default {
 
     //转发消息处理函数
     forwardMsgHandle(msg, list) {
-			console.log(list);
-			if(!list.length) {
-				alert('至少选择一个联系人！')
-				return
-			};
+      console.log(list);
+      if (!list.length) { 
+        alert("至少选择一个联系人！");
+        return;
+      }
       list.forEach(item => {
         let msgcopy = JSON.parse(JSON.stringify(msg));
         let uid = item.uid;
@@ -866,166 +898,208 @@ export default {
     //选择列表确定按钮事件处理
     onensure(list) {
       this.eventHandle(list);
-			this.showSelector = false;
-			this.selectListType = 0;
-			this.checktype = 'checkbox';
-
+      this.showSelector = false;
+      this.selectListType = 0;
+      this.checktype = "checkbox";
     },
 
     oncancel() {
       console.log("取消");
-			this.showSelector = false;
-			this.selectListType = 0;
-			this.checktype = 'checkbox';
+      this.showSelector = false;
+      this.selectListType = 0;
+      this.checktype = "checkbox";
     },
 
     addMember() {
-			this.initSelector(4);
+      this.initSelector(4);
       this.eventObj.handleFunc = this.addMemberHandle;
     },
 
     async addMemberHandle(list) {
-			console.log(list);
-			let memberList = [];
-			list.forEach(item => {
-				memberList.push(item.uid)
-			})
-			let params = JSON.stringify({
-				command: {
+      console.log(list);
+      let memberList = [];
+      list.forEach(item => {
+        memberList.push(item.uid);
+      });
+      let params = JSON.stringify({
+        command: {
           node: "member-add",
           fields: [
             {
               var: "uid",
               value: this.user.userId
-            }, {
-							var: "gid",
-							value: this.activeMessageView
-						}, {
-							var: "oid",
-							value: memberList
+            },
+            {
+              var: "gid",
+              value: this.activeMessageView
+            },
+            {
+              var: "oid",
+              value: memberList
             }
           ]
         }
-			})
-			// console.log(params)
-			try{
-				let res = await API.addMember({
-					jsonStr: params
-				});
+      });
+      // console.log(params)
+      try {
+        let res = await API.addMember({
+          jsonStr: params
+        });
 
-				let groupMembersData = await API.getmucMembers({
-					gid: this.activeMessageView,
-          uid: this.user.userId	
-				});
-				this.groupMembers = groupMembersData.data;
-				console.log(res);
-			}catch(error){
-				console.log(error)
-			}
+        let groupMembersData = await API.getmucMembers({
+          gid: this.activeMessageView,
+          uid: this.user.userId
+        });
+        this.groupMembers = groupMembersData.data;
+        console.log(res);
+      } catch (error) {
+        console.log(error);
+      }
     },
 
     deleteMember() {
-			this.checktype = 'radio';
+      this.checktype = "radio";
       this.initSelector(3);
       this.eventObj.handleFunc = this.deleteMemberHandle;
     },
     async deleteMemberHandle(list) {
-			console.log(list);
-			let memberList = [];
-			list.forEach(item => {
-				memberList.push(item.uid)
-			})
-			let params = JSON.stringify({
-				command: {
+      console.log(list);
+      let memberList = [];
+      list.forEach(item => {
+        memberList.push(item.uid);
+      });
+      let params = JSON.stringify({
+        command: {
           node: "member-del",
           fields: [
             {
               var: "uid",
               value: this.user.userId
-            }, {
-							var: "gid",
-							value: this.activeMessageView
-						}, {
-							var: "oid",
-							value: memberList
+            },
+            {
+              var: "gid",
+              value: this.activeMessageView
+            },
+            {
+              var: "oid",
+              value: memberList
             }
           ]
         }
-			})
-			// console.log(params)
-			try{
-				let res = await API.deleteMember({
-					jsonStr: params
-				});
-				let groupMembersData = await API.getmucMembers({
-					gid: this.activeMessageView,
-          uid: this.user.userId	
-				});
-				this.groupMembers = groupMembersData.data;
-				console.log(res);
-			}catch(error){
-				console.log(error)
-			}
-		},
-		
-		async deleteGroupHandle(){
-			let doDelete = confirm("确定解散群组吗？");
-			if(!doDelete) return;
-			let params = JSON.stringify({
-				command: {
+      });
+      // console.log(params)
+      try {
+        let res = await API.deleteMember({
+          jsonStr: params
+        });
+        let groupMembersData = await API.getmucMembers({
+          gid: this.activeMessageView,
+          uid: this.user.userId
+        });
+        this.groupMembers = groupMembersData.data;
+        console.log(res);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+
+    async deleteGroupHandle() {
+      let doDelete = confirm("确定解散群组吗？");
+      if (!doDelete) return;
+      let params = JSON.stringify({
+        command: {
           node: "group-del",
           fields: [
             {
               var: "uid",
               value: this.user.userId
-            }, {
-							var: "gid",
-							value: this.activeMessageView
-						}
+            },
+            {
+              var: "gid",
+              value: this.activeMessageView
+            }
           ]
         }
-			})
-			try{
-				let res = API.deleteGroup({
-					jsonStr: params
-				});
-				console.log(res);
-			}catch(error){
-				console.log(error);
+      });
+      try {
+        let res = API.deleteGroup({
+          jsonStr: params
+        });
+        console.log(res);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async getGroupList(uid) {
+      //获取群列表
+      let groupData = await API.getGroupList({
+        jsonStr: JSON.stringify({
+          command: {
+            node: "group-get",
+            fields: [
+              {
+                var: "uid",
+                value: this.user.userId
+              }
+            ]
+          }
+        })
+      });
+      groupData.data.command.fields.forEach(item => {
+        let groupId = item.gid;
+        item.isGroup = true;
+        this.groupJson[groupId] = item;
+      });
+      //存储群列表到本地
+      saveLocal("GROUP_LIST_" + uid, this.groupJson);
+      this.groupList = [];
+      for (let item in this.groupJson) {
+        this.groupList.push(this.groupJson[item]);
+      }
+		},
+
+		async getFriends(uid){
+					//获取好友列表
+			this.friendsList = [];
+			let friendsData = await API.getFriendsList({
+				uid: uid
+			});
+			friendsData.data.forEach(item => {
+				item.isGroup = false;
+				this.friendsJson[item.userId] = item;
+			});
+
+			//存储好友列表到本地
+			saveLocal("FRIENDS_LIST_" + uid, this.friendsJson);
+			for (let item in this.friendsJson) {
+				this.friendsList.push(this.friendsJson[item]);
 			}
 		},
-		async getGroupList(uid){
-			//获取群列表
-			let groupData = await API.getGroupList({
-				jsonStr: JSON.stringify({
-					command: {
-						node: "group-get",
-						fields: [
-							{
-								var: "uid",
-								value: this.user.userId
-							}
-						]
-					}
-				})
-			});
-			groupData.data.command.fields.forEach(item => {
-				let groupId = item.gid;
-				item.isGroup = true;
-				this.groupJson[groupId] = item;
-			});
-			//存储群列表到本地
-			saveLocal("GROUP_LIST_" + uid, this.groupJson);
-			this.groupList = [];
-			for (let item in this.groupJson) {
-				this.groupList.push(this.groupJson[item]);
+
+		async addFriend(){
+			console.log("添加好友");
+
+			try{
+				let res = await API.addFriend({
+					uid:this.user.userId,
+					userId:this.friendData.userId
+				});
+				console.log(res);
+				this.friendData['isadded'] = true;
+				this.getFriends(this.user.userId)
+			}catch(error){
+				console.log(error)
 			}
+			this.showNewFriendBox = false;
+		},
+		async addFriendCancel(){
+			this.showNewFriendBox = false;
 		}
   },
   async created() {
     let _this = this;
     strophe.setVM(this);
-    let routeParams = this.$route.params;
+		let routeParams = this.$route.params;
     if (routeParams && routeParams.userId) {
       this.user = readLocal("user_" + routeParams.userId);
       this.multi = true;
@@ -1045,22 +1119,25 @@ export default {
     //登录聊天服务器
     strophe.loginIm(userInfo);
 
-    //获取好友列表
-    let friendsData = await API.getFriendsList({
-      uid: uid
-    });
-    friendsData.data.forEach(item => {
-      item.isGroup = false;
-      this.friendsJson[item.userId] = item;
-    });
+    // //获取好友列表
+    // let friendsData = await API.getFriendsList({
+    //   uid: uid
+    // });
+    // friendsData.data.forEach(item => {
+    //   item.isGroup = false;
+    //   this.friendsJson[item.userId] = item;
+    // });
 
-    //存储好友列表到本地
-    saveLocal("FRIENDS_LIST_" + uid, this.friendsJson);
-    for (let item in this.friendsJson) {
-      this.friendsList.push(this.friendsJson[item]);
-    }
+    // //存储好友列表到本地
+    // saveLocal("FRIENDS_LIST_" + uid, this.friendsJson);
+    // for (let item in this.friendsJson) {
+    //   this.friendsList.push(this.friendsJson[item]);
+		// }
 
-		this.getGroupList(uid)
+		this.newFriend = readLocal("NEW_FRIEND_" + uid) || []
+
+		this.getFriends(uid);
+    this.getGroupList(uid);
 
     let activeTime = new Date().getTime();
     this.friendsJson = readLocal("FRIENDS_LIST_" + uid) || {};
@@ -1088,15 +1165,12 @@ export default {
     });
 
     this.talkList = copyTalkList;
-		this.talkListJson = readLocal("TALK_LIST_JSON" + uid) || {};
-		
-		this.$refs.inputBox.addEventListener("keydown", function(e) {
-      _this.checkEnter(e);
-    });
+    this.talkListJson = readLocal("TALK_LIST_JSON" + uid) || {};
 
   },
   mounted() {
-		if (this.talkList.length) {
+		let _this = this;
+    if (this.talkList.length) {
       let activeTalkList = this.talkList[0];
       if (activeTalkList.data.chatType == "1") {
         if (activeTalkList.data.from == this.user.userId) {
@@ -1109,7 +1183,10 @@ export default {
       }
       this.activeMessageViewType =
         activeTalkList.data.chatType == "1" ? "chat" : "groupchat";
-    }
+		}
+		this.$refs.inputBox.addEventListener("keydown", function(e) {
+      _this.checkEnter(e);
+    });
     creatUploader(this);
   }
 };
@@ -1383,19 +1460,20 @@ export default {
       }
     }
   }
-	.delete-group{
-		border none
-		height 38px
-		width 100%
-		color #fff
-		background #ff8e8e
-		border-radius 4px
-		font-size 14px
-		margin-top 20px
-		&:hover{
-			background #ff7272
-		}
-	}
 
+  .delete-group {
+    border: none;
+    height: 38px;
+    width: 100%;
+    color: #fff;
+    background: #ff8e8e;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 20px;
+
+    &:hover {
+      background: #ff7272;
+    }
+  }
 }
 </style>

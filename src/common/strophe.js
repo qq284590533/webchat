@@ -114,7 +114,7 @@ function onConnect(status) {
  * @returns {boolean}
  */
 async function onMessage(msg) {
-	console.log(msg)
+	// console.log(msg)
 	let elems = msg.getElementsByTagName('body');
 	let delay = msg.getElementsByTagName('delay');
 	let type = msg.getAttribute('type');
@@ -145,8 +145,29 @@ async function onMessage(msg) {
 
 		switch(parseInt(msgBody.type)){
 			case 1000:
-				console.log('有消息撤回了！')
-				changLocalMessage(msgBody);
+				let body = JSON.parse(msgBody.data.body)
+				if(body.action&&body.action==1003){
+					// console.log('被删除好友')
+					delete VM.friendsJson[msgBody.data.from]
+					VM.getFriends(VM.user.userId)
+				}else{
+					if(body.data.ADD_REASON){
+						let data = JSON.parse(msgBody.data.body).data;
+						// console.log('添加好友');
+						let friendData = {
+							userId:data.userId,
+							nick:data.nick,
+							reason:data.ADD_REASON
+						}
+						VM.showNewFriendBox = true;
+						VM.friendData = friendData;
+						VM.newFriend.unshift(friendData);
+						saveLocal('NEW_FRIEND_'+VM.user.userId,VM.newFriend)
+					}else{
+						console.log('有消息撤回了！')
+						changLocalMessage(msgBody);
+					}
+				}
 				break;
 			case 2000:
 				if(msgBody.data.ext.action&&msgBody.data.ext.action==2000){
