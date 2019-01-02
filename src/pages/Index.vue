@@ -300,7 +300,8 @@
                       class="content_box"
                       v-if="message.data.msgType==2001"
                       @contextmenu="showTools($event,message)"
-                    >{{message.data.body.content}}</span>
+                      v-html="resolvContent(message.data.body.content)"
+                    ></span>
                     <span
                       class="img_box content_box"
                       v-else-if="message.data.msgType==2002"
@@ -327,13 +328,24 @@
             </ul>
           </div>
           <div class="windows_input" id="talkbox">
-            <div class="input_icon">
+            <div class="face-box" v-show="showFaceBox" @click.stop="(function(){return false})">
+              <div class="face-content emoji-box">
+                <ul class="emoji-list" unselectable="on" onmousedown="return false;">
+                  <li unselectable="on" onmousedown="return false;" class="emoji-item" v-for="(faceCode,index) in faceCodeList" :key="index" @click="inputEmoji(faceCode)">
+                    <img :src="'/static/images/faceEmoji0/'+faceCode+'@3x.png'" alt="" srcset="">
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="input_icon" unselectable="on" onmousedown="return false;">
+              <button ref="emoji" id="emoji" class="btn" @click.stop="showFaceBox=true"></button>
               <div ref="container" class="icon-item" id="container">
                 <button ref="addImg" id="addImg" class="btn"></button>
               </div>
             </div>
             <div class="input_box">
-              <textarea ref="inputBox" contenteditable="true" name rows cols id="input_box"></textarea>
+              <!-- <textarea ref="inputBox" contenteditable="true" id="input_box"></textarea> -->
+              <div ref="inputBox" class="textarea" contenteditable="true" id="input_box"></div>
               <button id="send" @click="sendMsg(2001)">发送（S）</button>
             </div>
           </div>
@@ -348,10 +360,14 @@
 		<!-- 新的朋友 -->
         <div v-if="activeBox=='newFriend'" class="new-friend-box">
           <div class="new-friend-content">
-						<ul>
-							<li v-for="(item,index) in newFriend" :key="index">
-								<p>{{item.nick}}</p>
-								<p>{{item.reason}}</p>
+						<ul class="new-friend-list">
+							<li class="new-friend-item" v-for="(item,index) in newFriend" :key="index">
+                <img :src="'/static/images/contact.png'" alt="">
+                <div class="reason">
+                  <p>{{item.nick}}</p>
+                  <p>{{item.reason}}</p>
+                </div>
+                <div class="button-box"><button v-if="!item.isadded" @click="passAdd(item)">同意</button><span v-else>已添加</span></div>
 							</li>
 						</ul>
 					</div>
@@ -386,6 +402,7 @@ import * as API from "../api/index.js";
 import Base64 from "@/common/base64";
 import selectList from "@/components/selectList";
 import newFriendBox from "@/components/newFriend";
+import simulateTextarea from "../common/simulateTextarea.js"
 
 let base64 = new Base64();
 
@@ -444,8 +461,10 @@ export default {
         prop: null,
         handleFunc: () => null
 	  	},
-			newFriend:[],
-			friendData:{}
+			newFriend: [],
+      friendData: {},
+      showFaceBox: false,
+      faceCodeList: [],
     };
   },
   components: {
@@ -471,7 +490,7 @@ export default {
       } else {
         return M + "月" + D + "日 ";
       }
-    }
+    },
   },
   watch: {
     activeMessageView(newval, oldval) {
@@ -647,12 +666,13 @@ export default {
       }
       let tojid = this.activeMessageView;
       let jid = this.user.userId;
-      let msg = this.$refs.inputBox.value;
-      let msg_copy = msg;
-      if (msgType == 2001 && msg.replace(/^\s+|\s+$/g, "").length == 0) {
-        alert("不能发送空消息");
-        return false;
-      }
+      // let msg = this.$refs.inputBox.innerText;
+      // console.log(msg)
+      // let msg_copy = msg;
+      // if (msgType == 2001 && msg.replace(/^\s+|\s+$/g, "").length == 0) {
+      //   alert("不能发送空消息");
+      //   return false;
+      // }
       let msgObj = {
         to: tojid,
         from: jid,
@@ -856,7 +876,7 @@ export default {
     //转发消息处理函数
     forwardMsgHandle(msg, list) {
       console.log(list);
-      if (!list.length) { 
+      if (!list.length) {
         alert("至少选择一个联系人！");
         return;
       }
@@ -1076,16 +1096,21 @@ export default {
 			}
 		},
 
+    passAdd(item){
+      this.friendData = item;
+      this.addFriend()
+    },
+
 		async addFriend(){
 			console.log("添加好友");
-
 			try{
 				let res = await API.addFriend({
 					uid:this.user.userId,
 					userId:this.friendData.userId
 				});
 				console.log(res);
-				this.friendData['isadded'] = true;
+        this.friendData['isadded'] = true;
+        saveLocal('NEW_FRIEND_'+this.user.userId,this.newFriend)
 				this.getFriends(this.user.userId)
 			}catch(error){
 				console.log(error)
@@ -1094,10 +1119,62 @@ export default {
 		},
 		async addFriendCancel(){
 			this.showNewFriendBox = false;
-		}
+    },
+    createFaceList(){
+      for(var i=1; i<140; i++){
+        if(i==44) continue;
+        let faceCode = 'emoji_'+i;
+        this.faceCodeList.push(faceCode);
+      }
+    },
+    inputEmoji(faceCode){
+      let _this = this;
+      let src = '/static/images/faceEmoji0/'+faceCode+'@3x.png';
+      let img = document.createElement('img');
+      img.src = src;
+      img.className = 'emoji'
+      img.alt = '['+faceCode+']'
+      if(this.$refs.inputBox!=document.activeElement){
+        this.$refs.inputBox.appendChild(img);
+        return;
+      }
+      let selectEle, range;
+      if(window.getSelection){
+        selectEle = window.getSelection();
+        if(selectEle.getRangeAt && selectEle.rangeCount){
+          range = selectEle.getRangeAt(0);
+          range.deleteContents();
+          let el = document.createElement("div");
+          el.appendChild(img);
+          let frag = document.createDocumentFragment(), node, lastNode;
+          while ((node = el.firstChild)) {
+            lastNode = frag.appendChild(node);
+          }
+          range.insertNode(frag);
+          // Preserve the selection
+          if (lastNode) {
+            range = range.cloneRange();
+            range.setStartAfter(lastNode);
+            range.collapse(true);
+            selectEle.removeAllRanges();
+            selectEle.addRange(range);
+          }
+        }
+      }else if (document.selection && document.selection.type != "Control") {
+        // IE < 9
+        document.selection.createRange().pasteHTML(img);
+      }
+      this.showFaceBox = false;
+    },
+    //解析内容
+    resolvContent(val){
+      console.log(val);
+      return val
+    }
   },
   async created() {
     let _this = this;
+    this.createFaceList();
     strophe.setVM(this);
 		let routeParams = this.$route.params;
     if (routeParams && routeParams.userId) {
@@ -1118,21 +1195,6 @@ export default {
 
     //登录聊天服务器
     strophe.loginIm(userInfo);
-
-    // //获取好友列表
-    // let friendsData = await API.getFriendsList({
-    //   uid: uid
-    // });
-    // friendsData.data.forEach(item => {
-    //   item.isGroup = false;
-    //   this.friendsJson[item.userId] = item;
-    // });
-
-    // //存储好友列表到本地
-    // saveLocal("FRIENDS_LIST_" + uid, this.friendsJson);
-    // for (let item in this.friendsJson) {
-    //   this.friendsList.push(this.friendsJson[item]);
-		// }
 
 		this.newFriend = readLocal("NEW_FRIEND_" + uid) || []
 
@@ -1166,10 +1228,16 @@ export default {
 
     this.talkList = copyTalkList;
     this.talkListJson = readLocal("TALK_LIST_JSON" + uid) || {};
-
   },
   mounted() {
-		let _this = this;
+    let _this = this;
+    simulateTextarea();
+    this.$refs.inputBox.addEventListener("keydown", function(e) {
+      _this.checkEnter(e);
+    });
+    document.body.addEventListener('click',function(){
+      _this.showFaceBox = false;
+    })
     if (this.talkList.length) {
       let activeTalkList = this.talkList[0];
       if (activeTalkList.data.chatType == "1") {
@@ -1184,9 +1252,6 @@ export default {
       this.activeMessageViewType =
         activeTalkList.data.chatType == "1" ? "chat" : "groupchat";
 		}
-		this.$refs.inputBox.addEventListener("keydown", function(e) {
-      _this.checkEnter(e);
-    });
     creatUploader(this);
   }
 };
@@ -1371,6 +1436,17 @@ export default {
   }
 }
 
+#emoji {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: url('/static/images/icon/icon13.png') no-repeat center;
+
+  &:hover {
+    background: url('/static/images/icon/icon13_1.png') no-repeat center;
+  }
+}
+
 .logout {
   position: absolute;
   bottom: 0;
@@ -1474,6 +1550,95 @@ export default {
     &:hover {
       background: #ff7272;
     }
+  }
+}
+.new-friend-list{
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 15%;
+  .new-friend-item{
+    display: flex;
+    padding: 10px 0;
+    border-bottom 1px solid #ddd
+    img{
+      width:40px;
+      height:40px;
+    }
+  }
+  .reason{
+    font-size 12px;
+    margin 0 20px;
+    flex auto;
+    p:first-child{
+      font-size 14px;
+      line-height 24px;
+    }
+  }
+  .button-box{
+    width 40px;
+    button{
+      border none;
+      border-radius 3px;
+      width 40px;
+      line-height 22px;
+      background #0bbb07;
+      color #fff;
+      margin-top 8px;
+    }
+    span{
+      display block;
+      width 100%;
+      line-height 40px;
+      color #999;
+      text-align center;
+    }
+  }
+}
+#talkbox{
+  position relative;
+  .face-box{
+    position absolute;
+    bottom 135px;
+    left -50px;
+    width 400px;
+    background #fff;
+    max-height 240px;
+    border-radius 5px;
+    box-shadow 2px 2px 6px #bbb;
+    padding 0 10px;
+    overflow auto;
+    .face-content{
+      padding 0 4px
+      margin 20px 0
+    }
+    .emoji-box{
+      .emoji-list{
+        display flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        .emoji-item{
+          width 36px;
+          height 36px;
+          padding 6px;
+          box-sizing border-box;
+          cursor pointer
+          &:hover{
+            background #ddd
+          }
+          img{
+            width 100%
+            height 100%
+          }
+        }
+      }
+    }
+  }
+}
+
+#input_box{
+  .emoji{
+    width 20px;
+    height 20px;
   }
 }
 </style>

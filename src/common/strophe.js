@@ -151,7 +151,7 @@ async function onMessage(msg) {
 					delete VM.friendsJson[msgBody.data.from]
 					VM.getFriends(VM.user.userId)
 				}else{
-					if(body.data.ADD_REASON){
+					if(body.data&&body.data.ADD_REASON){
 						let data = JSON.parse(msgBody.data.body).data;
 						// console.log('添加好友');
 						let friendData = {
@@ -324,8 +324,18 @@ function sendMsg(msgObj,msgType,sendContent){
 	let time = new Date();
 	let body;
 	if(msgType==2001){
+    let html = sendContent.innerHTML;
+    let imgReg = /<img.*?(?:>|\/>)/i;
+    let div = document.createElement('div');
+    div.innerHTML = sendContent.innerHTML;
+    let emojis = sendContent.querySelectorAll('img');
+    for(let i=0; i<emojis.length; i++){
+      let alt = emojis[i].alt;
+      div.innerHTML = div.innerHTML.toString().replace(imgReg,alt);
+    }
+
 		body = {
-			content:sendContent.value
+			content:div.innerText
 		}
 	}else if(msgType==2002){
 		// console.log(sendContent)
@@ -410,7 +420,7 @@ function sendMsg(msgObj,msgType,sendContent){
 			VM.activeMessageList = VM.messageJson[VM.activeMessageView];
 		}
 		if(msgType==2001){
-			sendContent.value = ''
+			sendContent.innerText = ''
 		}
 	}else{
 		alert('与聊天服务器断开连接……')

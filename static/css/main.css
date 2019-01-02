@@ -509,7 +509,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 
 .input_icon{
 	height: 42px;
-	padding:0 28px;
+	padding:0 24px;
 }
 
 .input_icon a{
@@ -578,7 +578,7 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
  	transform:translate(-50%,-50%);
 }
 
-.input_box textarea{
+.input_box .textarea{
 	width:calc(100% - 56px);
 	height:calc(100% - 42px);
 	border: none;
@@ -587,7 +587,8 @@ ul.am-dropdown-content>li>a:focus, ul.am-dropdown-content>li>a:hover{
 	resize:none;
 	margin-left: 28px;
 	font-size: 14px;
-	line-height: 20px;
+  line-height: 20px;
+  overflow: auto;
 }
 
 .input_box{
