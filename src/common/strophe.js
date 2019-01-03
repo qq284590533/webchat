@@ -164,14 +164,14 @@ async function onMessage(msg) {
 						VM.newFriend.unshift(friendData);
 						saveLocal('NEW_FRIEND_'+VM.user.userId,VM.newFriend)
 					}else{
-						console.log('有消息撤回了！')
+						// console.log('有消息撤回了！')
 						changLocalMessage(msgBody);
 					}
 				}
 				break;
 			case 2000:
 				if(msgBody.data.ext.action&&msgBody.data.ext.action==2000){
-					console.log('群创建成功')
+					// console.log('群创建成功')
 					//获取群列表
 					VM.getGroupList();
 				}
@@ -225,7 +225,7 @@ function changLocalMessage(msg){
     }
 
   }else{
-    console.log(VM.messageJson[msg.data.from]);
+    // console.log(VM.messageJson[msg.data.from]);
     let thisMessages = VM.messageJson[msg.data.from];
     for(let i=0; i<thisMessages.length; i++){
       if(msg.data.from==thisMessages[i].data.from){
@@ -331,7 +331,7 @@ function sendMsg(msgObj,msgType,sendContent){
     let emojis = sendContent.querySelectorAll('img');
     for(let i=0; i<emojis.length; i++){
       let alt = emojis[i].alt;
-      div.innerHTML = div.innerHTML.toString().replace(imgReg,alt);
+      div.innerHTML = div.innerHTML.replace(imgReg,alt);
     }
 
 		body = {
@@ -397,7 +397,7 @@ function sendMsg(msgObj,msgType,sendContent){
 	}
 
 	if(connected){
-		console.log(data)
+		// console.log(data)
     saveMsg(data)
 
 		//上传消息记录
@@ -430,7 +430,7 @@ function sendMsg(msgObj,msgType,sendContent){
 let uploadMessage = async (param) =>{
 	try{
 		let res = await API.webUploadMessage(param);
-		console.log(res)
+		// console.log(res)
 	}
 	catch(error){
 		console.log(error)
@@ -440,7 +440,7 @@ let uploadMessage = async (param) =>{
 //撤回消息
 
 let withdrawMsg = async (msgItem) => {
-  console.log(msgItem)
+  // console.log(msgItem)
   let message;
   let param;
   let msgId = guid();
@@ -532,16 +532,16 @@ let withdrawMsg = async (msgItem) => {
   }
 
   let res = await API.withdrawMessage(param);
-  console.log(message.tree())
+  // console.log(message.tree())
   connection.send(message.tree());
-  console.log(res)
+  // console.log(res)
   if(res.res=="succ"){
     saveMsg(msgItem)
   }
 }
 
 function forwardMsg(uid,msgData,chatType){
-  console.log(uid,msgData);
+  // console.log(uid,msgData);
   let msgId = guid();
 	let time = new Date();
 	let body;
@@ -614,7 +614,7 @@ function forwardMsg(uid,msgData,chatType){
 }
 
 function deleteGroup(msg){
-	console.log(msg)
+	// console.log(msg)
 	let gid = msg.data.gid;
 	let groupNick = JSON.parse(JSON.stringify(VM.groupJson[gid])).name
 	for(let i=0; i<VM.groupList.length; i++){

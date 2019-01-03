@@ -99,7 +99,7 @@
                 </div>
                 <div class="user_text">
                   <p class="user_name">{{ judge(msg).nick }}</p>
-                  <p class="user_message">{{ judge(msg).content }}</p>
+                  <p class="user_message" v-html="resolvContent(judge(msg).content)"></p>
                 </div>
                 <div class="user_time">{{ judge(msg).time | formatDate }}</div>
               </div>
@@ -706,7 +706,7 @@ export default {
     },
 
     showTools(e, msg) {
-      console.log(msg);
+      // console.log(msg);
       if (msg.data.msgType == 2002) {
         this.contextmenu["1"].show = false;
       } else {
@@ -767,7 +767,7 @@ export default {
 
     //创建群组事件处理
     createGroupHandle(list) {
-      console.log(list);
+      // console.log(list);
     },
 
     getSelectContactList() {
@@ -796,7 +796,7 @@ export default {
         };
         list.push(groupItem);
       });
-      console.log(list);
+      // console.log(list);
       return list;
     },
 
@@ -814,7 +814,7 @@ export default {
         };
         list.push(friendsItem);
       });
-      console.log(list);
+      // console.log(list);
       return list;
     },
 
@@ -833,14 +833,14 @@ export default {
         };
         list.push(memberItem);
       });
-      console.log(list);
+      // console.log(list);
       return list;
     },
 
     //获取添加群成员选择列表
     getSelectaddMemberstList() {
       let list = this.getSelectFriendstList();
-      console.log(list);
+      // console.log(list);
       list.forEach(item => {
         let isInGroup = false;
         for (let i = 0; i < this.groupMembers.length; i++) {
@@ -856,7 +856,7 @@ export default {
 
     //复制消息方法
     copyCont() {
-      console.log("复制内容");
+      // console.log("复制内容");
       let input = document.createElement("input");
       input.value = this.msgItem.data.body.content;
       document.body.appendChild(input);
@@ -867,7 +867,7 @@ export default {
 
     //转发消息事件设置
     forwardMsg() {
-      console.log("转发消息");
+      // console.log("转发消息");
       this.initSelector(2);
       this.eventObj.prop = this.msgItem;
       this.eventObj.handleFunc = this.forwardMsgHandle;
@@ -875,7 +875,7 @@ export default {
 
     //转发消息处理函数
     forwardMsgHandle(msg, list) {
-      console.log(list);
+      // console.log(list);
       if (!list.length) {
         alert("至少选择一个联系人！");
         return;
@@ -890,7 +890,7 @@ export default {
 
     //撤回消息
     withdrawMsg() {
-      console.log("撤回消息");
+      // console.log("撤回消息");
       strophe.withdrawMsg(this.msgItem);
     },
 
@@ -924,7 +924,7 @@ export default {
     },
 
     oncancel() {
-      console.log("取消");
+      // console.log("取消");
       this.showSelector = false;
       this.selectListType = 0;
       this.checktype = "checkbox";
@@ -936,7 +936,7 @@ export default {
     },
 
     async addMemberHandle(list) {
-      console.log(list);
+      // console.log(list);
       let memberList = [];
       list.forEach(item => {
         memberList.push(item.uid);
@@ -971,7 +971,7 @@ export default {
           uid: this.user.userId
         });
         this.groupMembers = groupMembersData.data;
-        console.log(res);
+        // console.log(res);
       } catch (error) {
         console.log(error);
       }
@@ -983,7 +983,7 @@ export default {
       this.eventObj.handleFunc = this.deleteMemberHandle;
     },
     async deleteMemberHandle(list) {
-      console.log(list);
+      // console.log(list);
       let memberList = [];
       list.forEach(item => {
         memberList.push(item.uid);
@@ -1017,7 +1017,7 @@ export default {
           uid: this.user.userId
         });
         this.groupMembers = groupMembersData.data;
-        console.log(res);
+        // console.log(res);
       } catch (error) {
         console.log(error);
       }
@@ -1045,7 +1045,7 @@ export default {
         let res = API.deleteGroup({
           jsonStr: params
         });
-        console.log(res);
+        // console.log(res);
       } catch (error) {
         console.log(error);
       }
@@ -1102,13 +1102,13 @@ export default {
     },
 
 		async addFriend(){
-			console.log("添加好友");
+			// console.log("添加好友");
 			try{
 				let res = await API.addFriend({
 					uid:this.user.userId,
 					userId:this.friendData.userId
 				});
-				console.log(res);
+				// console.log(res);
         this.friendData['isadded'] = true;
         saveLocal('NEW_FRIEND_'+this.user.userId,this.newFriend)
 				this.getFriends(this.user.userId)
@@ -1168,8 +1168,22 @@ export default {
     },
     //解析内容
     resolvContent(val){
-      console.log(val);
-      return val
+      // console.log(val);
+      if(!val)return;
+      let emojiRag = /\[emoji_[1-9]\d{0,}\]/gi;
+      // val.replace(emojiRag,'11')
+      // console.log(val.match(emojiRag))
+      let emojiCodeList = val.match(emojiRag);
+      if(!emojiCodeList) return val;
+      let newVal = val;
+      for(let i=0; i<emojiCodeList.length; i++){
+        let length = emojiCodeList[i].length;
+        let imgHtml = '<img class="emoji" src="/static/images/faceEmoji0/'+emojiCodeList[i].substring(1,length-1)+'@3x.png">'
+        // console.log(imgHtml)
+        newVal = newVal.replace(/\[emoji_[1-9]\d{0,}\]/i,imgHtml)
+      }
+      // console.log(newVal)
+      return newVal
     }
   },
   async created() {
@@ -1360,7 +1374,12 @@ export default {
     word-wrap: break-word;
     word-break: normal;
     font-size: 14px;
-    line-height: 18px;
+    line-height: 20px;
+    .emoji{
+      width 20px;
+      height:20px;
+      margin-bottom -4px;
+    }
   }
 
   .img_box {
@@ -1468,6 +1487,7 @@ export default {
   line-height: 24px;
   text-align: center;
   box-shadow: 2px 2px 4px #999;
+  z-index 10;
   overflow: hidden;
 
   .menu-li {
@@ -1641,4 +1661,12 @@ export default {
     height 20px;
   }
 }
+
+.user_text p{
+  img{
+    width 18px;
+    height 18px;
+  }
+}
+
 </style>
