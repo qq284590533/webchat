@@ -11,7 +11,7 @@ let base64 = new Base64()
 let VM;
 let connected = false;
 let connection;
-let reLogin = false;
+let reLogin = true;
 connection = new Strophe.Connection(BOSH_SERVICE);
 // connection = new Strophe.Connection(BOSH_SERVICE,{sync: false});
 connection.rawInput = rawInput;
@@ -79,11 +79,11 @@ function onConnect(status) {
 		case Strophe.Status.CONNFAIL:
       console.log('连接失败')
 			break;
-			case Strophe.Status.DISCONNECTING:
-			console.log('正在断开连接')
+    case Strophe.Status.DISCONNECTING:
+      console.log('正在断开连接')
 			break;
 		case Strophe.Status.DISCONNECTED:
-			console.log('已断开连接')
+      console.log('已断开连接')
 			connected = false;
 			if(!VM.isLogOut){
 				if(reLogin){
@@ -95,7 +95,8 @@ function onConnect(status) {
 					VM.isLogOut = true;
 					logOutIm('被迫下线');
 				}
-			}
+      }
+			break;
 		case Strophe.Status.CONNECTED:
 			console.log('已连接')
 			connected = true;
