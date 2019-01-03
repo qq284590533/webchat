@@ -68,7 +68,8 @@
 					probeType: this.probeType,
 					click: this.click,
                     scrollX: this.scrollX,
-                    bounce: this.bounce
+					bounce: this.bounce,
+					mouseWheel:true
 				})
 
 				if (this.listenScroll) {

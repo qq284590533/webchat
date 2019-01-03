@@ -96,7 +96,7 @@
             >
               <div>
                 <div class="user_head">
-                  <img :src="judge(msg).avatar">
+                  <img :onerror="defaultImg" :src="judge(msg).avatar">
                 </div>
                 <div class="user_text">
                   <p class="user_name">{{ judge(msg).nick }}</p>
@@ -253,25 +253,25 @@
             <div id="doc-oc-demo3" class="am-offcanvas">
               <div class="am-offcanvas-bar am-offcanvas-bar-flip">
                 <div class="am-offcanvas-content">
-                  <div class="info-box" v-if="activeMessageViewType=='groupchat'">
-                    <scroll ref="scroll" @scrollToEnd="scrollToEnd">
-                      <ul class="groupmembers-list content">
-                        <li v-show="user.userId == groupCreator">
-                          <span class="add-member" title="添加组员" @click="addMember">+</span>
-                        </li>
-                        <li v-show="user.userId == groupCreator">
-                          <span class="delete-member" title="删除组员" @click="deleteMember">-</span>
-                        </li>
-                        <li v-for="(item, index) in activeGroupMembers" :key="index" :title="item.nick">
-                          <img
-                            :onerror="defaultImg"
-                            :src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar"
-                            alt
-                          >
-                          <p class="nick">{{item.nick}}</p>
-                        </li>
-                      </ul>
-                    </scroll>
+                  <div class="info-box" v-show="activeMessageViewType=='groupchat'">
+										<div ref="wrapper" class="wrapper">
+											<ul class="groupmembers-list">
+												<li v-show="user.userId == groupCreator">
+													<span class="add-member" title="添加组员" @click="addMember">+</span>
+												</li>
+												<li v-show="user.userId == groupCreator">
+													<span class="delete-member" title="删除组员" @click="deleteMember">-</span>
+												</li>
+												<li v-for="(item, index) in activeGroupMembers" :key="index" :title="item.nick">
+													<img
+														:onerror="defaultImg"
+														:src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar"
+														alt
+													>
+													<p class="nick">{{item.nick}}</p>
+												</li>
+											</ul>
+										</div>
                     <button
                       v-show="user.userId == groupCreator"
                       class="delete-group"
@@ -402,6 +402,7 @@ import "jquery";
 import "amazeui";
 
 import Scroll from "@/components/scroll";
+import BScroll from 'better-scroll'
 import dayjs from "dayjs";
 import ajax from "../common/ajax";
 import { readLocal, sortChinese, objSortFun, saveLocal } from "../common/utils";
@@ -479,7 +480,8 @@ export default {
       hasDownMessageGroupList:[],
       groupMembersJson:{},
       activeGroupMembers:[],
-      activeGroupMembersPage:1
+			activeGroupMembersPage:1,
+			loading:false
     };
   },
   components: {
@@ -627,10 +629,36 @@ export default {
 
         let groupMembersData = await API.getmucMembers(params2);
         this.groupMembers = groupMembersData.data;
-        this.activeGroupMembers = this.groupMembers.slice(0,53);
+				this.activeGroupMembers = this.groupMembers.slice(0,24);
+				this.activeGroupMembersPage = 1;
+				let maxPage = Math.ceil(this.groupMembers.length/24);
+				console.log(maxPage)
+				this.scroll = new BScroll(this.$refs.wrapper, {
+					probeType: 3,
+					click: true,
+					scrollX: false,
+					mouseWheel:true
+				})
+
         this.$nextTick(() => {
-          this.$refs.scroll.refresh();
-        });
+					this.scroll.refresh();
+				});
+				
+				this.scroll.on('scrollEnd', () => {
+					if(!_this.loading){
+						_this.activeGroupMembersPage++;
+						_this.loading = true;
+						// console.log(_this.activeGroupMembersPage);
+						let i = _this.activeGroupMembersPage;
+						let loadMember = _this.groupMembers.slice(i*24,i*24+24)
+						_this.activeGroupMembers = _this.activeGroupMembers.concat(loadMember)
+						_this.$nextTick(() => {
+							_this.scroll.refresh();
+							_this.loading = false;
+						});
+					}
+				})
+
         if(this.hasDownMessageGroupList.indexOf(uid)==-1){
           try {
             let msgData = await API.getMsgByTimestamp(params1);
@@ -1538,15 +1566,15 @@ export default {
 
 .am-offcanvas-content {
   .groupmembers-list {
-    max-height: 400px;
+    // max-height: 400px;
     // overflow: auto;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
-
+		pointer-events: auto;
     li {
-      width: 58px;
+      width: 60px;
       height: 60px;
       display: flex;
       text-align: center;
@@ -1700,7 +1728,14 @@ export default {
   }
 }
 
+.info-box{
+	position relative;
+}
+
 .wrapper{
+	z-index 11;
+	height 410px;
+	overflow hidden;
   .content{
     padding 0;
   }
