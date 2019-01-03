@@ -84,7 +84,8 @@ function onConnect(status) {
 			break;
 		case Strophe.Status.DISCONNECTED:
       console.log('已断开连接')
-			connected = false;
+      connected = false;
+      VM.hasDownMessageGroupList = [];
 			if(!VM.isLogOut){
 				if(reLogin){
 					loginIm({
@@ -120,13 +121,13 @@ async function onMessage(msg) {
 	let delay = msg.getElementsByTagName('delay');
 	let type = msg.getAttribute('type');
 	if(elems.length){
-    	console.log('来新消息了！');
+    	// console.log('来新消息了！');
 		let body = Strophe.getText(elems[0]);
 		// console.log('---------------------');
 
 		//发送消息回执
 		receipt(msg.getAttribute('id'))
-   		console.log(JSON.parse(base64.decode(body)))
+   		// console.log(JSON.parse(base64.decode(body)))
 		let msgBody;
 		let time;
 		if (type=='chat'||type=='groupchat'&elems.length > 0) {
@@ -142,7 +143,7 @@ async function onMessage(msg) {
 				return false;
 			}
     	}
-    	console.log(msgBody)
+    	// console.log(msgBody)
 
 		switch(parseInt(msgBody.type)){
 			case 1000:
@@ -243,6 +244,7 @@ function changLocalMessage(msg){
 
 function saveMsg(msg){
   // console.log(msg)
+  const MAX_MESSAGE_NUM = 50;
 	let user = VM.user
 	let other_jid;
 	if(msg.data.from==user.userId){
@@ -270,9 +272,13 @@ function saveMsg(msg){
         msgList[i] = msg
 				break;
 			}
-		}
+    }
+
 		if(!status){
-			VM.messageJson[other_jid].unshift(msg);
+      let newLength = VM.messageJson[other_jid].unshift(msg);
+      if(newLength>MAX_MESSAGE_NUM){
+        VM.messageJson[other_jid].pop()
+      }
 		}
 	}
 
@@ -303,9 +309,9 @@ function saveMsg(msg){
 	saveLocal('TALK_LIST_'+ user.userId,VM.talkList)
 	saveLocal('TALK_LIST_JSON_'+ user.userId,VM.talkListJson)
 
-	setTimeout(function(){
-		VM.$refs.officeText.scrollTop = VM.$refs.officeText.scrollHeight;
-	},0)
+	// setTimeout(function(){
+	// 	VM.$refs.officeText.scrollTop = VM.$refs.officeText.scrollHeight;
+	// },0)
 }
 
 
@@ -334,7 +340,10 @@ function sendMsg(msgObj,msgType,sendContent){
       let alt = emojis[i].alt;
       div.innerHTML = div.innerHTML.replace(imgReg,alt);
     }
-
+    if(div.innerText.replace(/^\s+|\s+$/g, "").length == 0) {
+      alert("不能发送空消息");
+      return false;
+    }
 		body = {
 			content:div.innerText
 		}

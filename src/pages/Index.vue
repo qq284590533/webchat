@@ -1,11 +1,12 @@
 <template>
-  <div class="wrapper">
+  <div class="page-wrapper">
     <div class="wechat" @click="showMenu=false">
       <div class="sidestrip">
         <div class="am-dropdown" data-am-dropdown>
           <!--头像插件-->
           <div class="own_head am-dropdown-toggle">
             <img
+              :onerror="defaultImg"
               :src="user.avatar=='false'||user.avatar==''||!user.avatar?'/static/images/contact.png':user.avatar"
               alt
             >
@@ -21,7 +22,7 @@
               </div>
               <img
                 :src="user.avatar=='false'||user.avatar==''||!user.avatar?'/static/images/contact.png':user.avatar"
-                alt
+                :onerror="defaultImg"
               >
             </div>
             <div class="own_head_bottom">
@@ -136,6 +137,7 @@
               >
                 <div class="item-box">
                   <img
+                    :onerror="defaultImg"
                     :src="group.imgurlde=='avatar'||group.imgurlde==null?'/static/images/contact.png':group.imgurlde"
                     alt
                   >
@@ -153,6 +155,7 @@
               >
                 <div class="item-box">
                   <img
+                    :onerror="defaultImg"
                     :src="friend.avatar=='false'||friend.avatar==''||!friend.avatar?'/static/images/contact.png':friend.avatar"
                     alt
                   >
@@ -251,21 +254,24 @@
               <div class="am-offcanvas-bar am-offcanvas-bar-flip">
                 <div class="am-offcanvas-content">
                   <div class="info-box" v-if="activeMessageViewType=='groupchat'">
-                    <ul class="groupmembers-list">
-                      <li v-for="(item, index) in groupMembers" :key="index" :title="item.nick">
-                        <img
-                          :src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar"
-                          alt
-                        >
-                        <p class="nick">{{item.nick}}</p>
-                      </li>
-                      <li v-show="user.userId == groupCreator">
-                        <span class="add-member" title="添加组员" @click="addMember">+</span>
-                      </li>
-                      <li v-show="user.userId == groupCreator">
-                        <span class="delete-member" title="删除组员" @click="deleteMember">-</span>
-                      </li>
-                    </ul>
+                    <scroll ref="scroll" @scrollToEnd="scrollToEnd">
+                      <ul class="groupmembers-list content">
+                        <li v-show="user.userId == groupCreator">
+                          <span class="add-member" title="添加组员" @click="addMember">+</span>
+                        </li>
+                        <li v-show="user.userId == groupCreator">
+                          <span class="delete-member" title="删除组员" @click="deleteMember">-</span>
+                        </li>
+                        <li v-for="(item, index) in activeGroupMembers" :key="index" :title="item.nick">
+                          <img
+                            :onerror="defaultImg"
+                            :src="item.avatar=='false'||item.avatar==''||!item.avatar?'/static/images/contact.png':item.avatar"
+                            alt
+                          >
+                          <p class="nick">{{item.nick}}</p>
+                        </li>
+                      </ul>
+                    </scroll>
                     <button
                       v-show="user.userId == groupCreator"
                       class="delete-group"
@@ -293,6 +299,7 @@
                   </div>
                   <div v-else>
                     <img
+                      :onerror="defaultImg"
                       :src="message.data.ext.avatar=='false'||message.data.ext.avatar==''||!message.data.ext.avatar?'/static/images/contact.png':message.data.ext.avatar"
                       :title="message.data.ext.nick"
                     >
@@ -320,7 +327,7 @@
             <ul v-show="showMenu" ref="contextmenu" class="menu-ul">
               <li
                 class="menu-li"
-                v-if="menuItem.show"
+                v-show="menuItem.show"
                 v-for="(menuItem,key) in contextmenu"
                 :key="key"
                 @click="clickMenuEvent(menuItem)"
@@ -362,7 +369,7 @@
           <div class="new-friend-content">
 						<ul class="new-friend-list">
 							<li class="new-friend-item" v-for="(item,index) in newFriend" :key="index">
-                <img :src="'/static/images/contact.png'" alt="">
+                <img :onerror="defaultImg" :src="'/static/images/contact.png'" alt="">
                 <div class="reason">
                   <p>{{item.nick}}</p>
                   <p>{{item.reason}}</p>
@@ -393,6 +400,8 @@
 <script>
 import "jquery";
 import "amazeui";
+
+import Scroll from "@/components/scroll";
 import dayjs from "dayjs";
 import ajax from "../common/ajax";
 import { readLocal, sortChinese, objSortFun, saveLocal } from "../common/utils";
@@ -404,11 +413,13 @@ import selectList from "@/components/selectList";
 import newFriendBox from "@/components/newFriend";
 import simulateTextarea from "../common/simulateTextarea.js"
 
+
 let base64 = new Base64();
 
 export default {
   data() {
     return {
+      defaultImg:"this.src='/static/images/contact.png'",
       user: null,
       userInfo: null,
       status: null,
@@ -465,11 +476,16 @@ export default {
       friendData: {},
       showFaceBox: false,
       faceCodeList: [],
+      hasDownMessageGroupList:[],
+      groupMembersJson:{},
+      activeGroupMembers:[],
+      activeGroupMembersPage:1
     };
   },
   components: {
-	selectList,
-	newFriendBox
+    Scroll,
+    selectList,
+    newFriendBox
   },
   filters: {
     formatDate(val) {
@@ -605,42 +621,50 @@ export default {
           gid: this.activeMessageView,
           uid: this.user.userId
         };
-        this.groupCreator = this.groupJson[uid].creator;
-        try {
-          let msgData = await API.getMsgByTimestamp(params1);
-          let groupMembersData = await API.getmucMembers(params2);
-          this.groupMembers = groupMembersData.data;
-          let msgList = msgData.data;
-          msgList.sort((a, b) => {
-            if (a) {
-              let timeA = parseInt(a.timeStamp);
-              let timeB = parseInt(b.timeStamp);
-              return timeA - timeB;
-            } else {
-              return 0;
-            }
-          });
-          msgList.forEach(msgItem => {
-            let msg = JSON.parse(base64.decode(msgItem.message));
-            msg["time"] = parseInt(msgItem.timeStamp);
-            // console.log(msg);
-            // if(msg.data.ext.action==6001){
-            //   if(this.groupList[uid].creator==this.user.userId){
-            //     msg.data.body.content = '你撤回了一条消息'
-            //   }else if(this.groupMembers[0].userId==this.user.userId){
-            //     msg.data.body.content = '你撤回了 \"'+msg.data.ext.nick+'\" 的一条消息'
-            //   }
-            // }
-            // console.log(msg)
-            strophe.saveMsg(msg);
-          });
-        } catch (err) {
-          console.log(err);
+        if(this.groupJson[uid]){
+          this.groupCreator = this.groupJson[uid].creator;
+        }
+
+        let groupMembersData = await API.getmucMembers(params2);
+        this.groupMembers = groupMembersData.data;
+        this.activeGroupMembers = this.groupMembers.slice(0,53);
+        this.$nextTick(() => {
+          this.$refs.scroll.refresh();
+        });
+        if(this.hasDownMessageGroupList.indexOf(uid)==-1){
+          try {
+            let msgData = await API.getMsgByTimestamp(params1);
+            let msgList = msgData.data;
+            msgList.sort((a, b) => {
+              if (a) {
+                let timeA = parseInt(a.timeStamp);
+                let timeB = parseInt(b.timeStamp);
+                return timeA - timeB;
+              } else {
+                return 0;
+              }
+            });
+            msgList.forEach(msgItem => {
+              let msg = JSON.parse(base64.decode(msgItem.message));
+              msg["time"] = parseInt(msgItem.timeStamp);
+              // console.log(msg);
+              // if(msg.data.ext.action==6001){
+              //   if(this.groupList[uid].creator==this.user.userId){
+              //     msg.data.body.content = '你撤回了一条消息'
+              //   }else if(this.groupMembers[0].userId==this.user.userId){
+              //     msg.data.body.content = '你撤回了 \"'+msg.data.ext.nick+'\" 的一条消息'
+              //   }
+              // }
+              // console.log(msg)
+              strophe.saveMsg(msg);
+            });
+            this.hasDownMessageGroupList.push(uid)
+          } catch (err) {
+            console.log(err);
+          }
         }
       }
-      this.activeMessageList = this.messageJson[uid]
-        ? this.messageJson[uid]
-        : [];
+      this.activeMessageList = this.messageJson[uid] ? this.messageJson[uid] : [];
       setTimeout(function() {
         _this.$refs.officeText.scrollTop = _this.$refs.officeText.scrollHeight;
       }, 0);
@@ -1184,6 +1208,9 @@ export default {
       }
       // console.log(newVal)
       return newVal
+    },
+    scrollToEnd(){
+      console.log('end')
     }
   },
   async created() {
@@ -1246,9 +1273,6 @@ export default {
   mounted() {
     let _this = this;
     simulateTextarea();
-    this.$refs.inputBox.addEventListener("keydown", function(e) {
-      _this.checkEnter(e);
-    });
     document.body.addEventListener('click',function(){
       _this.showFaceBox = false;
     })
@@ -1265,14 +1289,21 @@ export default {
       }
       this.activeMessageViewType =
         activeTalkList.data.chatType == "1" ? "chat" : "groupchat";
-		}
+    }
+
+    setTimeout(function(){
+      _this.$refs.inputBox.addEventListener("keydown", function(e) {
+        _this.checkEnter(e);
+      });
+    },1000)
+
     creatUploader(this);
   }
 };
 </script>
 
 <style lang="stylus">
-.wrapper {
+.page-wrapper {
   width: 100%;
   height: 100%;
   display: flex;
@@ -1508,14 +1539,14 @@ export default {
 .am-offcanvas-content {
   .groupmembers-list {
     max-height: 400px;
-    overflow: auto;
+    // overflow: auto;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
 
     li {
-      width: 60px;
+      width: 58px;
       height: 60px;
       display: flex;
       text-align: center;
@@ -1669,4 +1700,9 @@ export default {
   }
 }
 
+.wrapper{
+  .content{
+    padding 0;
+  }
+}
 </style>
