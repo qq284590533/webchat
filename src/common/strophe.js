@@ -210,7 +210,7 @@ function changLocalMessage(msg){
     }
 
     if(mgsBody.isOwner==1){
-      if(msg.data.from==VM.groupMembers[0].userId){
+      if(msg.data.from==VM.groupCreator){
         content = '群主撤回了一条消息'
       }else{
         content = '群主撤回了'+nick+'的一条消息'
@@ -457,7 +457,7 @@ let withdrawMsg = async (msgItem) => {
   let time = new Date();
 
   let body = {
-    isOwner:msgItem.data.chatType=='2'&&VM.groupMembers[0].userId==VM.user.userId?'1':'0',
+    isOwner:msgItem.data.chatType=='2'&&VM.groupCreator==VM.user.userId?'1':'0',
     action:6000,
     msgId:msgItem.data.msgId
   }

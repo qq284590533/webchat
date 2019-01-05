@@ -632,7 +632,6 @@ export default {
 				this.activeGroupMembers = this.groupMembers.slice(0,24);
 				this.activeGroupMembersPage = 1;
 				let maxPage = Math.ceil(this.groupMembers.length/24);
-				console.log(maxPage)
 				this.scroll = new BScroll(this.$refs.wrapper, {
 					probeType: 3,
 					click: true,
@@ -767,7 +766,7 @@ export default {
 
       if (this.activeMessageViewType == "groupchat") {
         if (
-          this.groupMembers[0].userId == this.user.userId ||
+          this.groupCreator == this.user.userId ||
           msg.data.from == this.user.userId
         ) {
           this.contextmenu["3"].show = true;
